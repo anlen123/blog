@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>2026.06.23 出行计划 · 成都三圣乡</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* ── Animal Island palette ── */
+    --parchment: #f7f3df;
+    --card-bg: #fffbf2;
+    --text: #725d42;
+    --text-light: #9b896a;
+    --text-muted: #baa98a;
+    --app-green: #8ac68a;
+    --app-green-soft: #daf0d6;
+    --app-orange: #e59266;
+    --app-orange-soft: #fce4d5;
+    --app-blue: #889df0;
+    --app-blue-soft: #dde2fb;
+    --app-teal: #82d5bb;
+    --app-teal-soft: #cff0e5;
+    --app-yellow: #f7cd67;
+    --app-yellow-soft: #fdf3d2;
+    --app-pink: #f8a6b2;
+    --app-red: #fc736d;
+    --brown: #9a835a;
+    --lime-green: #d1da49;
+    /* ── 3D shadow (core identity) ── */
+    --shadow-3d: 0 4px 0 #d3c8a8;
+    --shadow-3d-sm: 0 3px 0 #d3c8a8;
+    --shadow-3d-lg: 0 5px 0 #c7bb9b;
+    --shadow-card: 0 2px 12px rgba(114, 93, 66, 0.08);
+    --radius: 22px;
+    --radius-sm: 16px;
+    --radius-pill: 99px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Nunito', 'Noto Sans SC', system-ui, sans-serif;
+    background-color: var(--parchment);
+    background-image:
+      radial-gradient(ellipse 90% 50% at 15% 5%, rgba(138,198,138,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 70% 40% at 85% 80%, rgba(130,213,187,0.10) 0%, transparent 55%),
+      radial-gradient(ellipse 60% 50% at 50% 50%, rgba(247,205,103,0.06) 0%, transparent 60%);
+    color: var(--text);
+    line-height: 1.65;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ════════════ HERO ════════════ */
+  .hero {
+    text-align: center;
+    padding: 44px 24px 8px;
+    position: relative;
+  }
+
+  .hero-leaf {
+    display: block;
+    margin: 0 auto 8px;
+    font-size: 36px;
+    animation: leaf-sway 3s ease-in-out infinite;
+    filter: drop-shadow(0 3px 0 #c7bb9b);
+  }
+
+  @keyframes leaf-sway {
+    0%, 100% { transform: rotate(-3deg); }
+    50% { transform: rotate(3deg); }
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+    color: #fff;
+    background: var(--app-green);
+    padding: 6px 18px;
+    border-radius: var(--radius-pill);
+    box-shadow: var(--shadow-3d-sm);
+    margin-bottom: 18px;
+  }
+
+  .hero h1 {
+    font-family: 'Nunito', 'Noto Sans SC', sans-serif;
+    font-size: clamp(30px, 8vw, 44px);
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: 0.01em;
+    margin-bottom: 6px;
+  }
+
+  .hero .subtitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 0;
+  }
+
+  /* ════════════ DIVIDER BAND ════════════ */
+  .divider-band {
+    height: 12px;
+    margin: 24px 0 28px;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--app-green) 0px,
+      var(--app-green) 8px,
+      transparent 8px,
+      transparent 12px,
+      var(--app-teal) 12px,
+      var(--app-teal) 20px,
+      transparent 20px,
+      transparent 24px
+    );
+    opacity: 0.5;
+  }
+
+  /* ════════════ CONTAINER ════════════ */
+  .container {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 0 20px 20px;
+  }
+
+  /* ════════════ MAP HINT ════════════ */
+  .map-hint {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: var(--shadow-3d), var(--shadow-card);
+    border: 2px solid #f0e8d0;
+  }
+
+  .map-hint .pin-icon {
+    flex-shrink: 0;
+    width: 46px; height: 46px;
+    border-radius: 16px;
+    background: var(--app-pink);
+    box-shadow: var(--shadow-3d-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+
+  .map-hint p {
+    font-size: 13px;
+    color: var(--text-light);
+    line-height: 1.5;
+  }
+  .map-hint p strong {
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  /* ════════════ SECTION TITLE ════════════ */
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 18px;
+    letter-spacing: 0.02em;
+  }
+  .section-title .icon-box {
+    width: 34px; height: 34px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+  }
+  .icon-box.green  { background: var(--app-green-soft); }
+  .icon-box.orange { background: var(--app-orange-soft); }
+  .icon-box.blue  { background: var(--app-blue-soft); }
+
+  /* ════════════ TIMELINE ════════════ */
+  .timeline {
+    position: relative;
+    padding-left: 36px;
+    margin-bottom: 40px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 16px; top: 10px; bottom: 10px;
+    width: 3px;
+    border-radius: 2px;
+    background: repeating-linear-gradient(
+      to bottom,
+      var(--app-green) 0px,
+      var(--app-green) 6px,
+      transparent 6px,
+      transparent 14px
+    );
+  }
+
+  .tl-item {
+    position: relative;
+    margin-bottom: 22px;
+    animation: popIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    opacity: 0;
+  }
+  .tl-item:nth-child(1) { animation-delay: 0.05s; }
+  .tl-item:nth-child(2) { animation-delay: 0.15s; }
+  .tl-item:nth-child(3) { animation-delay: 0.25s; }
+  .tl-item:nth-child(4) { animation-delay: 0.35s; }
+  .tl-item:nth-child(5) { animation-delay: 0.45s; }
+
+  @keyframes popIn {
+    from { opacity: 0; transform: translateY(16px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .tl-dot {
+    position: absolute;
+    left: -25px; top: 14px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid var(--app-green);
+    box-shadow: 0 2px 0 #c7bb9b;
+    z-index: 1;
+  }
+  .tl-dot.orange { border-color: var(--app-orange); }
+  .tl-dot.blue   { border-color: var(--app-blue); }
+  .tl-dot.teal   { border-color: var(--app-teal); }
+  .tl-dot.muted  { border-color: #d3c8a8; box-shadow: none; }
+
+  .tl-card {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow-3d), var(--shadow-card);
+    border: 2px solid #f0e8d0;
+    transition: transform 0.15s;
+  }
+  .tl-card:active { transform: scale(0.98); }
+
+  .tl-time {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .tl-time.green  { color: var(--app-green); }
+  .tl-time.orange { color: var(--app-orange); }
+  .tl-time.blue   { color: var(--app-blue); }
+  .tl-time.muted  { color: var(--text-muted); }
+
+  .tl-name {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .tl-desc {
+    font-size: 13px;
+    color: var(--text-light);
+    line-height: 1.5;
+  }
+
+  .tl-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    margin-top: 8px;
+  }
+  .tl-tag.green  { color: #5a9a5a; background: var(--app-green-soft); }
+  .tl-tag.orange { color: #c07040; background: var(--app-orange-soft); }
+  .tl-tag.blue   { color: #6a7fd0; background: var(--app-blue-soft); }
+
+  /* ════════════ DINNER ════════════ */
+  .dinner-section { margin-bottom: 20px; }
+
+  .dinner-group { margin-bottom: 24px; }
+
+  .dinner-group-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: #fff;
+    padding: 5px 16px;
+    border-radius: var(--radius-pill);
+    box-shadow: var(--shadow-3d-sm);
+    margin-bottom: 14px;
+  }
+  .dinner-group-label.mall  { background: var(--app-blue); }
+  .dinner-group-label.local { background: var(--app-orange); }
+
+  .dinner-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .dinner-card {
+    background: #fff;
+    border: 2px solid #f0e8d0;
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: var(--shadow-3d), var(--shadow-card);
+    transition: transform 0.15s;
+    cursor: default;
+  }
+  .dinner-card:active { transform: scale(0.98); }
+
+  .dinner-emoji {
+    flex-shrink: 0;
+    width: 46px; height: 46px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    box-shadow: var(--shadow-3d-sm);
+  }
+  .dinner-emoji.blue   { background: var(--app-blue-soft); }
+  .dinner-emoji.orange { background: var(--app-orange-soft); }
+  .dinner-emoji.green  { background: var(--app-green-soft); }
+  .dinner-emoji.teal   { background: var(--app-teal-soft); }
+
+  .dinner-info { flex: 1; min-width: 0; }
+  .dinner-name {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .dinner-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .dinner-price {
+    flex-shrink: 0;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--app-orange);
+    background: var(--app-orange-soft);
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+  }
+  .dinner-price.blue { color: var(--app-blue); background: var(--app-blue-soft); }
+
+  /* ════════════ RECOMMEND ════════════ */
+  .recommend-card {
+    background: linear-gradient(135deg, #fff9ed 0%, #fef5e8 100%);
+    border: 2px solid #f7cd67;
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    box-shadow: var(--shadow-3d), var(--shadow-card);
+  }
+  .recommend-card .star {
+    flex-shrink: 0;
+    font-size: 26px;
+  }
+  .recommend-card .rec-text { font-size: 13px; color: var(--text-light); line-height: 1.6; }
+  .recommend-card .rec-text strong { color: var(--text); }
+
+  /* ════════════ FOOTER ════════════ */
+  .footer-forest {
+    position: relative;
+    height: 80px;
+    margin-top: 40px;
+    overflow: hidden;
+    background: linear-gradient(to top, var(--app-green-soft) 0%, transparent 100%);
+  }
+  .footer-forest::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 80px;
+    background:
+      /* tree 1 */
+      radial-gradient(ellipse 22px 70px at 18% 100%, var(--app-green) 0%, transparent 70%),
+      /* tree 2 */
+      radial-gradient(ellipse 18px 55px at 32% 100%, var(--app-teal) 0%, transparent 70%),
+      /* tree 3 - tall */
+      radial-gradient(ellipse 26px 85px at 50% 100%, var(--app-green) 0%, transparent 70%),
+      /* tree 4 */
+      radial-gradient(ellipse 20px 60px at 68% 100%, var(--app-teal) 0%, transparent 70%),
+      /* tree 5 */
+      radial-gradient(ellipse 16px 50px at 85% 100%, var(--app-green) 0%, transparent 70%),
+      /* ground */
+      linear-gradient(to top, #daf0d6 0%, transparent 50%);
+    opacity: 0.6;
+  }
+  .footer-text {
+    text-align: center;
+    padding: 12px 20px 28px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  /* ════════════ PILL BADGE ════════════ */
+  .pill-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: #fff;
+    background: var(--app-red);
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    box-shadow: var(--shadow-3d-sm);
+    margin-left: 6px;
+    vertical-align: middle;
+    animation: badge-bounce 2s ease-in-out infinite;
+  }
+
+  @keyframes badge-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+  }
+
+  /* ════════════ RESPONSIVE ════════════ */
+  @media (max-width: 380px) {
+    .hero { padding: 34px 14px 6px; }
+    .container { padding: 0 14px 16px; }
+    .tl-card { padding: 14px 16px; }
+    .tl-dot { left: -23px; top: 12px; width: 18px; height: 18px; }
+    .timeline { padding-left: 30px; }
+    .timeline::before { left: 14px; }
+    .dinner-card { padding: 12px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════ HERO ════════════ -->
+<header class="hero">
+  <span class="hero-leaf">🌿</span>
+  <div class="hero-badge">✨ TUESDAY · 周二</div>
+  <h1>出行计划</h1>
+  <p class="subtitle">2026 年 6 月 23 日 · 成都锦江</p>
+</header>
+
+<div class="divider-band"></div>
+
+<!-- ════════════ MAIN ════════════ -->
+<div class="container">
+
+  <!-- ── 地理位置 ── -->
+  <div class="map-hint">
+    <div class="pin-icon">📍</div>
+    <p>今天所有地点均在 <strong>锦江区 · 三圣乡</strong> 片区<br>彼此相距 3–5 公里，不用跑远路 🚗</p>
+  </div>
+
+  <!-- ── 时间线 ── -->
+  <div class="section-title">
+    <span class="icon-box green">⏱</span> 行程时间线
+  </div>
+
+  <div class="timeline">
+
+    <div class="tl-item">
+      <div class="tl-dot green"></div>
+      <div class="tl-card">
+        <div class="tl-time green">10:30 AM</div>
+        <div class="tl-name">🚗 出门出发</div>
+        <div class="tl-desc">带上羽毛球装备，出发前往鳌峰羽毛球馆<br>📍 锦江区锦江大道 1488 号 · 动感熊猫体育公园</div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot teal"></div>
+      <div class="tl-card">
+        <div class="tl-time teal">11:00 – 12:00</div>
+        <div class="tl-name">🏸 鳌峰羽毛球馆</div>
+        <div class="tl-desc">动感熊猫体育公园内 · 18 片标准场地<br>畅打 1 小时，热身出汗</div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot orange"></div>
+      <div class="tl-card">
+        <div class="tl-time orange">中午</div>
+        <div class="tl-name">🍄 梅林深处 · 野生菌汤锅</div>
+        <div class="tl-desc">三圣乡探梅路 117 号<br>墨脱石锅熬煮，松茸炖土鸡，鲜掉眉毛</div>
+        <span class="tl-tag orange">📞 17381983241 · 建议提前预约</span>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot blue"></div>
+      <div class="tl-card">
+        <div class="tl-time blue">下午</div>
+        <div class="tl-name">🎮 燃Space 新运动潮玩空间</div>
+        <div class="tl-desc">华熙LIVE·528 C区 L3 · 10,000㎡<br>100+ 项目：VR、卡丁车、射箭、蹦床…</div>
+        <span class="tl-tag blue">🕙 营业至 22:00</span>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot muted"></div>
+      <div class="tl-card">
+        <div class="tl-time muted">晚上</div>
+        <div class="tl-name">🏠 回家</div>
+        <div class="tl-desc">结束充实的一天，满载快乐回家 🌙</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 晚餐推荐 ── -->
+  <div class="dinner-section">
+    <div class="section-title">
+      <span class="icon-box orange">🍽</span> 晚餐推荐 <span class="pill-badge">待定</span>
+    </div>
+
+    <!-- 💡 首推 -->
+    <div class="recommend-card">
+      <span class="star">💡</span>
+      <span class="rec-text">
+        <strong>首推 · 大院河仙魚莊：</strong>古风庭院鱼火锅，乌篷船里吃鱼，每晚 19:00 川剧变脸表演。中午菌汤锅、晚上鱼火锅，一天尝遍两种鲜！
+      </span>
+    </div>
+
+    <div class="dinner-group">
+      <div class="dinner-group-label mall">🏬 华熙LIVE·528 商场内</div>
+      <div class="dinner-list">
+
+        <div class="dinner-card">
+          <div class="dinner-emoji blue">🌶</div>
+          <div class="dinner-info">
+            <div class="dinner-name">蜀宴小调</div>
+            <div class="dinner-meta"><span>精致川菜</span><span>A区 L3 · 环境雅致</span></div>
+          </div>
+          <div class="dinner-price blue">¥60-100</div>
+        </div>
+
+        <div class="dinner-card">
+          <div class="dinner-emoji blue">🦐</div>
+          <div class="dinner-info">
+            <div class="dinner-name">木槿海鲜自助烤肉泰式火锅</div>
+            <div class="dinner-meta"><span>海鲜烤肉自助</span><span>A区 L3</span></div>
+          </div>
+          <div class="dinner-price blue">¥80-120</div>
+        </div>
+
+        <div class="dinner-card">
+          <div class="dinner-emoji blue">🐟</div>
+          <div class="dinner-info">
+            <div class="dinner-name">妙味烤鱼吧</div>
+            <div class="dinner-meta"><span>烤鱼专门店</span><span>A区 L3 · 麻辣鲜香</span></div>
+          </div>
+          <div class="dinner-price blue">¥50-80</div>
+        </div>
+
+        <div class="dinner-card">
+          <div class="dinner-emoji blue">🍢</div>
+          <div class="dinner-info">
+            <div class="dinner-name">蓉掌柜小郡肝串串香</div>
+            <div class="dinner-meta"><span>地道成都串串</span><span>栀子街 741 号</span></div>
+          </div>
+          <div class="dinner-price blue">¥50-70</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="dinner-group">
+      <div class="dinner-group-label local">🌿 三圣乡周边特色</div>
+      <div class="dinner-list">
+
+        <div class="dinner-card">
+          <div class="dinner-emoji orange">🏮</div>
+          <div class="dinner-info">
+            <div class="dinner-name">大院河 · 仙魚莊</div>
+            <div class="dinner-meta"><span>古风庭院鱼火锅</span><span>川剧变脸 · 乌篷船</span></div>
+          </div>
+          <div class="dinner-price">¥80-100</div>
+        </div>
+
+        <div class="dinner-card">
+          <div class="dinner-emoji orange">🥩</div>
+          <div class="dinner-info">
+            <div class="dinner-name">阿屋</div>
+            <div class="dinner-meta"><span>烤肉 BBQ</span><span>日式庭院 · 绿植环绕</span></div>
+          </div>
+          <div class="dinner-price">¥100±</div>
+        </div>
+
+        <div class="dinner-card">
+          <div class="dinner-emoji teal">🌊</div>
+          <div class="dinner-info">
+            <div class="dinner-name">白鹭 · 烟汀</div>
+            <div class="dinner-meta"><span>湖畔川菜</span><span>湿地公园 · 歌手驻唱</span></div>
+          </div>
+          <div class="dinner-price">¥117</div>
+        </div>
+
+        <div class="dinner-card">
+          <div class="dinner-emoji green">🏡</div>
+          <div class="dinner-info">
+            <div class="dinner-name">三槐院</div>
+            <div class="dinner-meta"><span>家常川菜</span><span>性价比之王 · 地道成都味</span></div>
+          </div>
+          <div class="dinner-price">¥70</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ════════════ FOOTER ════════════ -->
+<div class="footer-forest"></div>
+<div class="footer-text">
+  <a href="../travel-plan/" style="color: var(--app-green); text-decoration: none; font-weight: 700;">← 返回出行攻略</a>
+  <br><br>Made for a perfect day out · 成都 2026
+</div>
+
+</body>
+</html>

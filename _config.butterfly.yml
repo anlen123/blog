@@ -1,0 +1,501 @@
+CDN:
+  custom_format: null
+  internal_provider: local
+  option: null
+  third_party_provider: jsdelivr
+  version: true
+Open_Graph_meta:
+  enable: true
+  option: null
+abcjs:
+  enable: false
+  per_page: true
+activate_power_mode:
+  colorful: true
+  enable: false
+  mobile: false
+  shake: true
+ad:
+  aside: null
+  index: null
+  post: null
+anchor:
+  auto_update: false
+  click_to_scroll: false
+aplayerInject:
+  enable: false
+  per_page: true
+archive_img: null
+artalk:
+  option: null
+  server: null
+  site: null
+  visitor: false
+aside:
+  button: true
+  card_announcement:
+    content: This is my Blog
+    enable: true
+  card_archives:
+    enable: true
+    format: MMMM YYYY
+    limit: 8
+    order: -1
+    sort_order: null
+    type: monthly
+  card_author:
+    button:
+      enable: true
+      icon: fab fa-github
+      link: https://github.com/anlen123
+      text: Follow Me
+    description: null
+    enable: true
+  card_categories:
+    enable: true
+    expand: none
+    limit: 8
+    sort_order: null
+  card_newest_comments:
+    avatar: true
+    enable: false
+    limit: 6
+    sort_order: null
+    storage: 10
+  card_post_series:
+    enable: true
+    order: -1
+    orderBy: date
+    series_title: false
+  card_recent_post:
+    enable: true
+    limit: 5
+    sort: date
+    sort_order: null
+  card_tags:
+    color: false
+    custom_colors: null
+    enable: true
+    limit: 40
+    order: 1
+    orderby: random
+    sort_order: null
+  card_webinfo:
+    enable: true
+    last_push_date: true
+    post_count: true
+    runtime_date: null
+    sort_order: null
+  display:
+    archive: true
+    category: true
+    tag: true
+  enable: true
+  hide: false
+  mobile: true
+  position: right
+avatar:
+  img: /blog/images/avatar.gif
+background: null
+baidu_analytics: null
+beautify:
+  enable: false
+  field: post
+  title_prefix_icon: null
+  title_prefix_icon_color: null
+blog_title_font:
+  font_family: null
+  font_link: null
+busuanzi:
+  page_pv: true
+  site_pv: true
+  site_uv: true
+canvas_fluttering_ribbon:
+  enable: false
+  mobile: false
+canvas_nest:
+  color: 0,0,255
+  count: 99
+  enable: false
+  mobile: false
+  opacity: 0.7
+  zIndex: -1
+canvas_ribbon:
+  alpha: 0.6
+  click_to_change: false
+  enable: false
+  mobile: false
+  size: 150
+  zIndex: -1
+category_img: null
+category_per_img: null
+category_ui: null
+chartjs:
+  borderColor:
+    dark: rgba(255, 255, 255, 0.2)
+    light: rgba(0, 0, 0, 0.1)
+  enable: false
+  fontColor:
+    dark: rgba(255, 255, 255, 0.8)
+    light: rgba(0, 0, 0, 0.8)
+  scale_ticks_backdropColor:
+    dark: transparent
+    light: transparent
+chat:
+  button_hide_show: false
+  rightside_button: false
+  use: null
+chatra:
+  id: null
+clickShowText:
+  enable: false
+  fontSize: 15px
+  mobile: false
+  random: false
+  text: null
+click_heart:
+  enable: false
+  mobile: false
+cloudflare_analytics: null
+code_blocks:
+  copy: true
+  fullpage: false
+  height_limit: false
+  language: true
+  macStyle: false
+  shrink: false
+  theme: light
+  word_wrap: false
+comments:
+  card_post_count: false
+  count: false
+  lazyload: false
+  text: true
+  use: null
+copy:
+  copyright:
+    enable: false
+    limit_count: 150
+  enable: true
+cover:
+  archives_enable: true
+  aside_enable: true
+  default_cover: null
+  index_enable: true
+crisp:
+  website_id: null
+css_prefix: true
+darkmode:
+  autoChangeMode: false
+  button: true
+  enable: true
+  end: null
+  start: null
+default_top_img: null
+disable_top_img: false
+display_mode: light
+disqus:
+  apikey: null
+  shortname: null
+disqusjs:
+  apikey: null
+  option: null
+  shortname: null
+enter_transitions: true
+error_404:
+  background: /img/error-page.png
+  enable: false
+  subtitle: Page Not Found
+error_img:
+  flink: /img/friend_404.gif
+  post_page: /img/404.jpg
+facebook_comments:
+  app_id: null
+  lang: en_US
+  order_by: social
+  pageSize: 10
+  user_id: null
+favicon: /blog/images/favicon-16x16-next.png
+fireworks:
+  enable: false
+  mobile: false
+  zIndex: 9999
+font:
+  code_font_family: null
+  code_font_size: null
+  font_family: null
+  global_font_size: null
+footer:
+  copyright:
+    enable: true
+    version: true
+  custom_text: null
+  nav: null
+  owner:
+    enable: true
+    since: 2025
+footer_img: false
+giscus:
+  category_id: null
+  dark_theme: dark
+  js: null
+  light_theme: light
+  option: null
+  repo: null
+  repo_id: null
+gitalk:
+  admin: null
+  client_id: null
+  client_secret: null
+  option: null
+  owner: null
+  repo: null
+google_adsense:
+  auto_ads: true
+  client: null
+  enable: false
+  enable_page_level_ads: true
+  js: https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js
+google_analytics: null
+google_tag_manager:
+  domain: null
+  tag_id: null
+hr_icon:
+  enable: true
+  icon: null
+  icon_top: null
+index_img: null
+index_layout: 3
+index_post_content:
+  length: 500
+  method: 3
+index_site_info_top: null
+index_top_img_height: null
+inject:
+  bottom: null
+  head:
+    - '<link rel="stylesheet" href="/blog/css/animal-island-theme.css">'
+instantpage: false
+lazyload:
+  blur: false
+  enable: false
+  field: site
+  native: false
+  placeholder: null
+lightbox: null
+livere:
+  uid: null
+mask:
+  footer: true
+  header: true
+math:
+  hide_scrollbar: false
+  katex:
+    copy_tex: false
+  mathjax:
+    enableMenu: true
+    tags: none
+  per_page: true
+  use: null
+menu:
+  主页: /
+  关于: /about/
+  出行攻略: /travel-plan/
+  分类: /categories/
+  归档: /archives/
+  标签: /tags/
+  简历: /resume/
+mermaid:
+  code_write: false
+  enable: false
+  open_in_new_tab: true
+  theme:
+    dark: dark
+    light: default
+  zoom_pan: true
+microsoft_clarity: null
+nav:
+  display_post_title: true
+  display_title: true
+  fixed: false
+  logo: null
+note:
+  border_radius: 3
+  icons: true
+  light_bg_offset: 0
+  style: flat
+noticeOutdate:
+  enable: false
+  limit_day: 365
+  message_next: days since the last update, the content of the article may be outdated.
+  message_prev: It has been
+  position: top
+  style: flat
+photofigcaption: false
+pjax:
+  enable: false
+  exclude: null
+post_copyright:
+  author_href: null
+  decode: false
+  enable: true
+  license: CC BY-NC-SA 4.0
+  license_url: https://creativecommons.org/licenses/by-nc-sa/4.0/
+post_edit:
+  enable: false
+  url: null
+post_meta:
+  page:
+    categories: true
+    date_format: date
+    date_type: created
+    label: true
+    tags: false
+  post:
+    categories: true
+    date_format: date
+    date_type: both
+    label: true
+    position: left
+    tags: true
+post_pagination: 1
+preloader:
+  enable: false
+  pace_css_url: null
+  source: 1
+pwa:
+  apple_touch_icon: null
+  enable: false
+  favicon_16_16: null
+  favicon_32_32: null
+  manifest: null
+  mask_icon: null
+readmode: true
+related_post:
+  date_type: created
+  enable: true
+  limit: 6
+remark42:
+  host: null
+  option: null
+  siteId: null
+reward:
+  QR_code: null
+  enable: false
+  text: null
+rightside_bottom: null
+rightside_config_animation: true
+rightside_item_order:
+  enable: false
+  hide: null
+  show: null
+rightside_scroll_percent: false
+rounded_corners_ui: true
+search:
+  algolia_search:
+    hitsPerPage: 6
+  docsearch:
+    apiKey: null
+    appId: null
+    indexName: null
+    option: null
+  local_search:
+    CDN: null
+    pagination:
+      enable: false
+      hitsPerPage: 8
+    preload: false
+    top_n_per_article: 1
+    unescape: false
+  placeholder: null
+  use: null
+series:
+  enable: false
+  number: true
+  order: 1
+  orderBy: title
+share:
+  addtoany:
+    item: facebook,x,wechat,sina_weibo,facebook_messenger,email,copy_link
+  sharejs:
+    sites: facebook,x,wechat,weibo,qq
+  use: sharejs
+site_verification: null
+snackbar:
+  bg_dark: '#1f1f1f'
+  bg_light: '#49b1f5'
+  enable: false
+  position: bottom-left
+social:
+  fab fa-github: https://github.com/anlen123
+  fas fa-envelope: mailto:1761512493@qq.com
+structured_data:
+  alternate_name: null
+  enable: false
+subtitle:
+  effect: true
+  enable: false
+  source: false
+  sub: null
+  typed_option: null
+tag_img: null
+tag_per_img: null
+tag_ui: null
+text_align_justify: false
+tidio:
+  public_key: null
+toc:
+  expand: false
+  number: true
+  page: false
+  post: true
+  scroll_percent: true
+  style_simple: false
+translate:
+  default: 繁
+  defaultEncoding: 2
+  enable: false
+  msgToSimplifiedChinese: 簡
+  msgToTraditionalChinese: 繁
+  translateDelay: 0
+twikoo:
+  envId: null
+  option: null
+  region: null
+  visitor: false
+umami_analytics:
+  UV_PV:
+    page_pv: false
+    site_pv: false
+    site_uv: false
+    token: null
+  enable: false
+  option: null
+  script_name: script.js
+  serverURL: null
+  website_id: null
+utterances:
+  dark_theme: photon-dark
+  issue_term: pathname
+  js: null
+  light_theme: github-light
+  option: null
+  repo: null
+valine:
+  appId: null
+  appKey: null
+  avatar: monsterid
+  bg: null
+  option: null
+  serverURLs: null
+  visitor: false
+waline:
+  bg: null
+  option: null
+  pageview: false
+  serverURL: null
+wordcount:
+  enable: false
+  min2read: true
+  post_wordcount: true
+  total_wordcount: true

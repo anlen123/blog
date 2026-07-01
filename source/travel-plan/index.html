@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>出行攻略 · 旅行日记</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --parchment: #f7f3df;
+    --text: #725d42;
+    --text-light: #9b896a;
+    --text-muted: #baa98a;
+    --app-green: #8ac68a;
+    --app-green-soft: #daf0d6;
+    --app-orange: #e59266;
+    --app-orange-soft: #fce4d5;
+    --app-blue: #889df0;
+    --app-blue-soft: #dde2fb;
+    --app-teal: #82d5bb;
+    --app-teal-soft: #cff0e5;
+    --app-yellow: #f7cd67;
+    --app-pink: #f8a6b2;
+    --shadow-3d: 0 4px 0 #d3c8a8;
+    --shadow-3d-sm: 0 3px 0 #d3c8a8;
+    --shadow-card: 0 2px 12px rgba(114,93,66,0.08);
+    --radius: 22px;
+    --radius-pill: 99px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Nunito', 'Noto Sans SC', system-ui, sans-serif;
+    background-color: var(--parchment);
+    background-image:
+      radial-gradient(ellipse 90% 50% at 10% 5%, rgba(138,198,138,0.10) 0%, transparent 60%),
+      radial-gradient(ellipse 70% 40% at 88% 85%, rgba(130,213,187,0.08) 0%, transparent 55%);
+    color: var(--text);
+    line-height: 1.65;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    text-align: center;
+    padding: 48px 24px 12px;
+  }
+  .hero-icon {
+    font-size: 42px;
+    margin-bottom: 12px;
+    display: block;
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  .hero h1 {
+    font-family: 'Nunito', 'Noto Sans SC', sans-serif;
+    font-size: clamp(28px, 8vw, 40px);
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .hero .subtitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-light);
+  }
+
+  .divider-band {
+    height: 12px;
+    margin: 20px 0 32px;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--app-green) 0px, var(--app-green) 8px,
+      transparent 8px, transparent 12px,
+      var(--app-teal) 12px, var(--app-teal) 20px,
+      transparent 20px, transparent 24px
+    );
+    opacity: 0.5;
+  }
+
+  .container {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 0 20px 20px;
+  }
+
+  /* ── STATS ROW ── */
+  .stats-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    flex: 1;
+    background: #fff;
+    border: 2px solid #f0e8d0;
+    border-radius: var(--radius);
+    padding: 14px 12px;
+    text-align: center;
+    box-shadow: var(--shadow-3d-sm), var(--shadow-card);
+  }
+  .stat-num {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--app-green);
+    display: block;
+  }
+  .stat-num.orange { color: var(--app-orange); }
+  .stat-num.blue   { color: var(--app-blue); }
+  .stat-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* ── PLAN CARD ── */
+  .plan-card {
+    background: #fff;
+    border: 2px solid #f0e8d0;
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow-3d), var(--shadow-card);
+    text-decoration: none;
+    display: block;
+    transition: transform 0.15s, box-shadow 0.15s;
+    color: var(--text);
+    position: relative;
+    overflow: hidden;
+  }
+  .plan-card:active { transform: scale(0.98); }
+  .plan-card:hover { box-shadow: 0 6px 0 #c7bb9b, 0 4px 20px rgba(114,93,66,0.12); }
+
+  .plan-card .accent-stripe {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 5px;
+    border-radius: 5px 0 0 5px;
+  }
+  .accent-stripe.green  { background: var(--app-green); }
+  .accent-stripe.orange { background: var(--app-orange); }
+  .accent-stripe.blue  { background: var(--app-blue); }
+
+  .plan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 6px;
+  }
+  .plan-date {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .plan-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .plan-brief {
+    font-size: 13px;
+    color: var(--text-light);
+    line-height: 1.5;
+  }
+  .plan-tags {
+    display: flex;
+    gap: 6px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .plan-tag {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+  }
+  .plan-tag.green  { color: #5a9a5a; background: var(--app-green-soft); }
+  .plan-tag.orange { color: #c07040; background: var(--app-orange-soft); }
+  .plan-tag.blue   { color: #6a7fd0; background: var(--app-blue-soft); }
+
+  .plan-arrow {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--app-yellow);
+    box-shadow: var(--shadow-3d-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 800;
+  }
+
+  /* ── FOOTER ── */
+  .footer-forest {
+    position: relative;
+    height: 80px;
+    margin-top: 40px;
+    overflow: hidden;
+    background: linear-gradient(to top, var(--app-green-soft) 0%, transparent 100%);
+  }
+  .footer-forest::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 80px;
+    background:
+      radial-gradient(ellipse 22px 70px at 18% 100%, var(--app-green) 0%, transparent 70%),
+      radial-gradient(ellipse 18px 55px at 32% 100%, var(--app-teal) 0%, transparent 70%),
+      radial-gradient(ellipse 26px 85px at 50% 100%, var(--app-green) 0%, transparent 70%),
+      radial-gradient(ellipse 20px 60px at 68% 100%, var(--app-teal) 0%, transparent 70%),
+      radial-gradient(ellipse 16px 50px at 85% 100%, var(--app-green) 0%, transparent 70%),
+      linear-gradient(to top, #daf0d6 0%, transparent 50%);
+    opacity: 0.6;
+  }
+  .footer-text {
+    text-align: center;
+    padding: 12px 20px 28px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── EMPTY STATE ── */
+  .coming-soon {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .coming-soon .icon { font-size: 48px; display: block; margin-bottom: 12px; }
+
+  @media (max-width: 380px) {
+    .hero { padding: 34px 16px 8px; }
+    .container { padding: 0 14px 16px; }
+    .plan-card { padding: 16px 18px; }
+    .stats-row { gap: 6px; }
+    .stat-card { padding: 10px 8px; }
+    .stat-num { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <span class="hero-icon">🗺️</span>
+  <h1>出行攻略</h1>
+  <p class="subtitle">记录每一次出发 · 成都周边探索</p>
+</header>
+
+<div class="divider-band"></div>
+
+<div class="container">
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <span class="stat-num">2</span>
+      <span class="stat-label">📋 已记录</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-num orange">6</span>
+      <span class="stat-label">🏷️ 地点打卡</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-num blue">∞</span>
+      <span class="stat-label">✨ 待探索</span>
+    </div>
+  </div>
+
+  <!-- ═══ 2026.06.23 ═══ -->
+  <a href="../travel-plan-20260623/" class="plan-card">
+    <span class="accent-stripe green"></span>
+    <div class="plan-date">2026.06.23 · 周二</div>
+    <div class="plan-header">
+      <div class="plan-title">🏸 三圣乡羽毛球 + 潮玩一日</div>
+      <span class="plan-arrow">→</span>
+    </div>
+    <p class="plan-brief">鳌峰羽毛球馆 → 梅林深处野生菌汤锅 → 燃Space潮玩空间</p>
+    <div class="plan-tags">
+      <span class="plan-tag green">🏸 运动</span>
+      <span class="plan-tag orange">🍄 美食</span>
+      <span class="plan-tag blue">🎮 潮玩</span>
+    </div>
+  </a>
+
+  <!-- ═══ 2026.06.21 ═══ -->
+  <a href="../travel-plan-20260621/" class="plan-card">
+    <span class="accent-stripe orange"></span>
+    <div class="plan-date">2026.06.21 · 周日</div>
+    <div class="plan-header">
+      <div class="plan-title">🦞 保利时光里 × 霸王虾</div>
+      <span class="plan-arrow">→</span>
+    </div>
+    <p class="plan-brief">保利时光里逛街 + 霸王虾小龙虾大餐</p>
+    <div class="plan-tags">
+      <span class="plan-tag blue">🛍️ 逛街</span>
+      <span class="plan-tag orange">🦞 美食</span>
+    </div>
+  </a>
+
+  <!-- ── 未来更多计划占位 ── -->
+  <div class="coming-soon">
+    <span class="icon">📝</span>
+    更多出行攻略，敬请期待…
+  </div>
+
+</div>
+
+<div class="footer-forest"></div>
+<div class="footer-text">每一次出发都值得被记录 · 成都 2026</div>
+
+</body>
+</html>

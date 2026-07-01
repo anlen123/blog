@@ -1,0 +1,7 @@
+scheme: Gemini
+menu:
+  home: / || home
+  about: /about/ || user
+  resume: /resume/ || file-alt
+  archives: /archives/ || archive
+  plan: /plan.html || map
