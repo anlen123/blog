@@ -200,8 +200,10 @@
     align-items: center;
     justify-content: center;
     font-size: 14px;
+    line-height: 1;
     color: var(--text);
     font-weight: 800;
+    padding-bottom: 1px;
   }
 
   /* ── FOOTER ── */
@@ -265,6 +267,87 @@
 
 <div class="divider-band"></div>
 
+	<style>
+	  /* ── CALENDAR ── */
+	  .calendar-section { margin-bottom: 28px; }
+	  .calendar-section .section-label {
+	    font-size: 12px; font-weight: 800; letter-spacing: 0.1em;
+	    text-transform: uppercase; color: var(--text-muted);
+	    margin-bottom: 12px; text-align: center;
+	  }
+	  .calendar-wrap {
+	    background: #fff; border: 2px solid #f0e8d0;
+	    border-radius: var(--radius); padding: 16px 14px;
+	    box-shadow: var(--shadow-3d-sm), var(--shadow-card);
+	  }
+	  .cal-header {
+	    display: flex; align-items: center; justify-content: space-between;
+	    margin-bottom: 14px;
+	  }
+	  .cal-month-label { font-size: 17px; font-weight: 800; color: var(--text); }
+	  .cal-nav {
+	    width: 30px; height: 30px; border-radius: 50%;
+	    border: 2px solid #e8dcc8; background: #fff;
+	    font-size: 14px; font-weight: 800; color: var(--text-light);
+	    cursor: pointer; display: flex; align-items: center; justify-content: center;
+	    transition: background 0.15s, border-color 0.15s; font-family: inherit;
+	    line-height: 1; padding: 0;
+	  }
+	  .cal-nav:hover { background: var(--app-green-soft); border-color: var(--app-green); }
+	  .cal-nav:active { transform: scale(0.93); }
+	  .cal-weekdays {
+	    display: grid; grid-template-columns: repeat(7, 1fr);
+	    text-align: center; font-size: 10px; font-weight: 800;
+	    color: var(--text-muted); letter-spacing: 0.06em;
+	    margin-bottom: 6px; padding: 0 2px;
+	  }
+	  .cal-grid {
+	    display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px;
+	  }
+	  .cal-day {
+	    aspect-ratio: 1 / 1; display: flex; flex-direction: column;
+	    align-items: center; justify-content: center;
+	    border-radius: 12px; font-size: 13px; font-weight: 700;
+	    color: var(--text); position: relative; cursor: default;
+	    transition: background 0.12s;
+	  }
+	  .cal-day.other-month { color: #e0d8c8; }
+	  .cal-day.today {
+	    box-shadow: inset 0 0 0 2px var(--app-orange); font-weight: 800;
+	  }
+	  .cal-day.has-event {
+	    background: var(--app-green-soft); color: #4a8a4a; font-weight: 800;
+	  }
+	  .cal-day.has-event .dot {
+	    position: absolute; bottom: 3px; width: 5px; height: 5px;
+	    border-radius: 50%; background: var(--app-green);
+	  }
+	  .cal-day.has-event.orange-dot .dot { background: var(--app-orange); }
+	  .cal-day.has-event.blue-dot  .dot { background: var(--app-blue); }
+	  .cal-day:not(.other-month):hover { background: #faf6ed; }
+	  .cal-day.has-event:hover { background: #c8e6c0; }
+	  .cal-legend {
+	    display: flex; gap: 14px; justify-content: center;
+	    margin-top: 12px; flex-wrap: wrap;
+	  }
+	  .cal-legend-item {
+	    display: flex; align-items: center; gap: 5px;
+	    font-size: 11px; font-weight: 700; color: var(--text-light);
+	  }
+	  .cal-legend-dot { width: 9px; height: 9px; border-radius: 50%; }
+	  .cal-legend-dot.green  { background: var(--app-green); }
+	  .cal-legend-dot.orange { background: var(--app-orange); }
+	  .cal-legend-dot.blue  { background: var(--app-blue); }
+	  .cal-today-btn {
+	    display: block; margin: 10px auto 0;
+	    font-size: 11px; font-weight: 700; color: var(--app-green);
+	    background: none; border: none; cursor: pointer;
+	    font-family: inherit; padding: 4px 12px;
+	    border-radius: var(--radius-pill); transition: background 0.15s;
+	  }
+	  .cal-today-btn:hover { background: var(--app-green-soft); }
+	</style>
+
 <div class="container">
 
   <div class="stats-row">
@@ -282,7 +365,28 @@
     </div>
   </div>
 
-  <!-- ═══ 2026.06.23 ═══ -->
+    <!-- CALENDAR -->
+  <div class="calendar-section">
+    <div class="section-label">📅 出行日历</div>
+    <div class="calendar-wrap">
+      <div class="cal-header">
+        <button class="cal-nav" id="calPrev" title="上个月">◀</button>
+        <span class="cal-month-label" id="calMonthLabel"></span>
+        <button class="cal-nav" id="calNext" title="下个月">▶</button>
+      </div>
+      <div class="cal-weekdays">
+        <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-legend">
+        <span class="cal-legend-item"><span class="cal-legend-dot green"></span> 已出行</span>
+        <span class="cal-legend-item"><span class="cal-legend-dot orange"></span> 计划中</span>
+      </div>
+      <button class="cal-today-btn" id="calToday">↺ 回到今天</button>
+    </div>
+  </div>
+
+<!-- ═══ 2026.06.23 ═══ -->
   <a href="../travel-plan-20260623/" class="plan-card">
     <span class="accent-stripe green"></span>
     <div class="plan-date">2026.06.23 · 周二</div>
@@ -323,6 +427,117 @@
 
 <div class="footer-forest"></div>
 <div class="footer-text">每一次出发都值得被记录 · 成都 2026</div>
+
+
+<script>
+(function() {
+  // Travel events — add new events here to light up the calendar
+  var EVENTS = {
+    '2026-06-21': { label: '保利时光里 × 霸王虾', url: '../travel-plan-20260621/', color: 'green' },
+    '2026-06-23': { label: '三圣乡羽毛球 + 潮玩', url: '../travel-plan-20260623/', color: 'green' }
+  };
+
+  var currentYear, currentMonth;
+  var today = new Date();
+  var todayStr = today.getFullYear() + '-' +
+    String(today.getMonth() + 1).padStart(2, '0') + '-' +
+    String(today.getDate()).padStart(2, '0');
+
+  var monthLabel = document.getElementById('calMonthLabel');
+  var calGrid = document.getElementById('calGrid');
+
+  function render(year, month) {
+    currentYear = year;
+    currentMonth = month;
+
+    var months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+    monthLabel.textContent = year + '年 ' + months[month];
+
+    calGrid.innerHTML = '';
+
+    var firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+    var daysInMonth = new Date(year, month + 1, 0).getDate();
+    var daysInPrevMonth = new Date(year, month, 0).getDate();
+
+    // Previous month fill
+    for (var i = firstDay - 1; i >= 0; i--) {
+      var d = daysInPrevMonth - i;
+      var m = month === 0 ? 11 : month - 1;
+      var y = month === 0 ? year - 1 : year;
+      var dateStr = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      var div = document.createElement('div');
+      div.className = 'cal-day other-month';
+      div.textContent = d;
+      div.title = dateStr;
+      calGrid.appendChild(div);
+    }
+
+    // Current month
+    for (var d = 1; d <= daysInMonth; d++) {
+      var dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      var div = document.createElement('div');
+      div.className = 'cal-day';
+      div.textContent = d;
+
+      if (dateStr === todayStr) {
+        div.classList.add('today');
+      }
+
+      var evt = EVENTS[dateStr];
+      if (evt) {
+        div.classList.add('has-event');
+        if (evt.color === 'orange') div.classList.add('orange-dot');
+        if (evt.color === 'blue') div.classList.add('blue-dot');
+        div.innerHTML = d + '<span class="dot"></span>';
+        div.title = evt.label;
+        div.style.cursor = 'pointer';
+        if (evt.url) {
+          div.addEventListener('click', function(u) { return function() { window.location.href = u; }; }(evt.url));
+        }
+      }
+
+      calGrid.appendChild(div);
+    }
+
+    // Next month fill
+    var totalCells = firstDay + daysInMonth;
+    var remain = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+    for (var d = 1; d <= remain; d++) {
+      var m = month === 11 ? 0 : month + 1;
+      var y = month === 11 ? year + 1 : year;
+      var dateStr = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      var div = document.createElement('div');
+      div.className = 'cal-day other-month';
+      div.textContent = d;
+      div.title = dateStr;
+      calGrid.appendChild(div);
+    }
+  }
+
+  function goToday() {
+    render(today.getFullYear(), today.getMonth());
+  }
+
+  document.getElementById('calPrev').addEventListener('click', function() {
+    var m = currentMonth - 1;
+    var y = currentYear;
+    if (m < 0) { m = 11; y--; }
+    render(y, m);
+  });
+
+  document.getElementById('calNext').addEventListener('click', function() {
+    var m = currentMonth + 1;
+    var y = currentYear;
+    if (m > 11) { m = 0; y++; }
+    render(y, m);
+  });
+
+  document.getElementById('calToday').addEventListener('click', goToday);
+
+  // Start on the month that has events (June 2026), or current month
+  goToday();
+})();
+</script>
 
 </body>
 </html>
