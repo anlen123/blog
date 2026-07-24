@@ -1,0 +1,433 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Agent Skill 命中率保障策略——当 Skills 数量爆炸时如何精准路由 | 刘华强的笔记</title><meta name="author" content="刘华强"><meta name="copyright" content="刘华强"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="拆解 Agent 系统中 Skill 命中率保障的四条核心策略：场景化描述、Tree 层级路由、负空间排除、召回+重排两阶段流水线，附带检查清单与自动化优化方案。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Agent Skill 命中率保障策略——当 Skills 数量爆炸时如何精准路由">
+<meta property="og:url" content="https://anlen123.github.io/blog/2026/07/24/Agent-Skill%E5%91%BD%E4%B8%AD%E7%8E%87%E4%BF%9D%E9%9A%9C%E7%AD%96%E7%95%A5/index.html">
+<meta property="og:site_name" content="刘华强的笔记">
+<meta property="og:description" content="拆解 Agent 系统中 Skill 命中率保障的四条核心策略：场景化描述、Tree 层级路由、负空间排除、召回+重排两阶段流水线，附带检查清单与自动化优化方案。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://anlen123.github.io/blog/blog/images/avatar.gif">
+<meta property="article:published_time" content="2026-07-23T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-07-24T11:01:44.067Z">
+<meta property="article:author" content="刘华强">
+<meta property="article:tag" content="AI Agent">
+<meta property="article:tag" content="AI工程">
+<meta property="article:tag" content="LLM">
+<meta property="article:tag" content="Skill">
+<meta property="article:tag" content="信息检索">
+<meta property="article:tag" content="命中率">
+<meta property="article:tag" content="路由">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://anlen123.github.io/blog/blog/images/avatar.gif"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Agent Skill 命中率保障策略——当 Skills 数量爆炸时如何精准路由",
+  "url": "https://anlen123.github.io/blog/2026/07/24/Agent-Skill%E5%91%BD%E4%B8%AD%E7%8E%87%E4%BF%9D%E9%9A%9C%E7%AD%96%E7%95%A5/",
+  "image": "https://anlen123.github.io/blog/blog/images/avatar.gif",
+  "datePublished": "2026-07-23T16:00:00.000Z",
+  "dateModified": "2026-07-24T11:01:44.067Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "刘华强",
+      "url": "https://anlen123.github.io/blog"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/blog/blog/images/favicon-16x16-next.png"><link rel="canonical" href="https://anlen123.github.io/blog/2026/07/24/Agent-Skill%E5%91%BD%E4%B8%AD%E7%8E%87%E4%BF%9D%E9%9A%9C%E7%AD%96%E7%95%A5/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/blog/css/index.css?v=5.5.5"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/blog/',
+  algolia: undefined,
+  localSearch: {"path":"/blog/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Agent Skill 命中率保障策略——当 Skills 数量爆炸时如何精准路由',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/blog/css/animal-island-theme.css"><meta name="generator" content="Hexo 8.1.2"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/blog/blog/images/avatar.gif" onerror="this.onerror=null;this.src='/blog/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/blog/archives/"><div class="headline">文章</div><div class="length-num">22</div></a><a href="/blog/tags/"><div class="headline">标签</div><div class="length-num">51</div></a><a href="/blog/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/blog/"><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/blog/about/"><span> 关于</span></a></div><div class="menus_item"><a class="site-page" href="/blog/travel-plan/"><span> 出行攻略</span></a></div><div class="menus_item"><a class="site-page" href="/blog/categories/"><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/blog/archives/"><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/blog/tags/"><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/blog/resume/"><span> 简历</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/blog/"><span class="site-name">刘华强的笔记</span></a><a class="nav-page-title" href="/blog/"><span class="site-name">Agent Skill 命中率保障策略——当 Skills 数量爆炸时如何精准路由</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/blog/"><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/blog/about/"><span> 关于</span></a></div><div class="menus_item"><a class="site-page" href="/blog/travel-plan/"><span> 出行攻略</span></a></div><div class="menus_item"><a class="site-page" href="/blog/categories/"><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/blog/archives/"><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/blog/tags/"><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/blog/resume/"><span> 简历</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Agent Skill 命中率保障策略——当 Skills 数量爆炸时如何精准路由</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-07-23T16:00:00.000Z" title="发表于 2026-07-24 00:00:00">2026-07-24</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-07-24T11:01:44.067Z" title="更新于 2026-07-24 19:01:44">2026-07-24</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/blog/categories/AI/">AI</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h2 id="一、问题背景"><a href="#一、问题背景" class="headerlink" title="一、问题背景"></a>一、问题背景</h2><p>当 Agent 系统中安装的 Skill 数量达到几十甚至上百个时，一个致命问题浮出水面：</p>
+<blockquote>
+<p><strong>用户说了一句话，Agent 能精准命中正确的 Skill 吗？</strong></p>
+</blockquote>
+<h3 id="命中率的瓶颈在哪里？"><a href="#命中率的瓶颈在哪里？" class="headerlink" title="命中率的瓶颈在哪里？"></a>命中率的瓶颈在哪里？</h3><p>Skill 的触发依赖 <strong>LLM 阅读 skill 描述 → 判断是否匹配用户意图</strong>，这个过程有四个核心瓶颈：</p>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>描述冲突</strong></td>
+<td>两个 skill 的描述覆盖了同一个关键词（比如 <code>pdf</code> 和 <code>docx</code> 都可能匹配”处理文件”）</td>
+</tr>
+<tr>
+<td><strong>描述模糊</strong></td>
+<td>“当用户需要创建文档时使用”——到底是指什么文档？模型要做语义推理，容易出错</td>
+</tr>
+<tr>
+<td><strong>上下文窗口竞争</strong></td>
+<td>skill 列表在 system prompt 里，数量越多，每个 skill 分到的”注意力”越少</td>
+</tr>
+<tr>
+<td><strong>LLM 的贪心匹配</strong></td>
+<td>模型倾向于选择第一个”看起来相关”的 skill，而不是最精确的那个</td>
+</tr>
+</tbody></table>
+<p>这本质上是信息检索中的 <strong>precision&#x2F;recall 权衡问题</strong>。本文从现有主流 Agent Skill 系统的设计出发，结合信息检索领域的成熟方法论，总结出四条核心保障策略。</p>
+<hr>
+<h2 id="二、先理解：Skill-系统的触发架构"><a href="#二、先理解：Skill-系统的触发架构" class="headerlink" title="二、先理解：Skill 系统的触发架构"></a>二、先理解：Skill 系统的触发架构</h2><p>当前主流 Skill 系统采用<strong>渐进式加载（Progressive Disclosure）</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Level 1: name + description  (~100 words)</span><br><span class="line">         → 始终存在于 Agent 上下文中，决定是否触发</span><br><span class="line">         </span><br><span class="line">Level 2: SKILL.md 正文        (&lt;500 lines)</span><br><span class="line">         → 仅在命中时加载进上下文</span><br><span class="line">         </span><br><span class="line">Level 3: 打包资源 (scripts/references/assets)</span><br><span class="line">         → 按需加载，可执行脚本无需加载</span><br></pre></td></tr></table></figure>
+
+<p><strong>关键认知</strong>：所有 Skill 的 <code>description</code> 字段同时竞争 Agent 的注意力。Agent 基于 description 判断”这个 Skill 值得调用吗？”——这是触发决策的唯一入口。因此，保障命中率的核心战场就是 <strong>description 的设计</strong>。</p>
+<hr>
+<h2 id="三、策略一：描述”触发场景”而非”能力清单”"><a href="#三、策略一：描述”触发场景”而非”能力清单”" class="headerlink" title="三、策略一：描述”触发场景”而非”能力清单”"></a>三、策略一：描述”触发场景”而非”能力清单”</h2><p>这是最反直觉但最关键的一条原则。</p>
+<h3 id="对比"><a href="#对比" class="headerlink" title="对比"></a>对比</h3><table>
+<thead>
+<tr>
+<th>❌ 能力导向（描述 Skill 能做什么）</th>
+<th>✅ 场景导向（描述用户会怎么说）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>“处理 PDF 文件，支持合并、拆分、旋转、OCR”</td>
+<td>“当用户说「帮我合并 PDF」「把这个 PDF 拆开」「提取 PDF 里的文字」「生成一份 PDF」时调用”</td>
+</tr>
+<tr>
+<td>“前端 UI 生成工具，支持 React&#x2F;Vue&#x2F;Angular”</td>
+<td>“当用户要求搭建落地页、仪表盘、Web 组件，尤其是说「做得好看一点」时调用”</td>
+</tr>
+<tr>
+<td>“数据库性能分析，支持 MySQL&#x2F;PostgreSQL&#x2F;MongoDB”</td>
+<td>“当用户抱怨查询慢、问为什么 SQL 执行这么久、或提到 EXPLAIN&#x2F;慢查询&#x2F;索引优化时调用”</td>
+</tr>
+</tbody></table>
+<h3 id="为什么有效"><a href="#为什么有效" class="headerlink" title="为什么有效"></a>为什么有效</h3><p><strong>核心区别：</strong> 能力描述需要模型做一次<strong>语义推理</strong>（”合并 PDF” ⊆ “处理 PDF” 吗？），场景描述只需要做一次<strong>模式匹配</strong>（用户说的话里有没有这些字面片段）。LLM 在语义推理上会出错，但在字面&#x2F;近字面匹配上准确得多。</p>
+<ul>
+<li><strong>能力清单</strong>让模型做推理跳跃：”这个 Skill 能干什么 → 用户现在需要这个吗？”（多了一步推理，增加错误概率）</li>
+<li><strong>场景描述</strong>直接匹配用户原话中的 pattern，近似于关键词匹配 + 语义扩展</li>
+</ul>
+<h3 id="实践要点"><a href="#实践要点" class="headerlink" title="实践要点"></a>实践要点</h3><ul>
+<li>用户会说的话长什么样？——带具体文件名、列名、缩写、错别字、口语化表达</li>
+<li>好 query 示例：<code>&quot;ok so my boss just sent me this xlsx file (its in my downloads, called something like &#39;Q4 sales final FINAL v2.xlsx&#39;) and she wants me to add a column that shows the profit margin as a percentage...&quot;</code></li>
+<li>坏 query 示例：<code>&quot;Format this data&quot;</code>（太抽象，无法区分）</li>
+<li>区分度优先于覆盖面——宁可漏掉边缘场景，也不要和其他 skill 撞车</li>
+</ul>
+<hr>
+<h2 id="四、策略二：建立-Tree-层级路由"><a href="#四、策略二：建立-Tree-层级路由" class="headerlink" title="四、策略二：建立 Tree 层级路由"></a>四、策略二：建立 Tree 层级路由</h2><p>当 Skill 数量突破临界点（通常 &gt;30），扁平列表的 description 之间必然出现语义重叠。<strong>Tree 路由</strong>将 O(N) 的扁平匹配降为 O(log N)。</p>
+<h3 id="架构示意"><a href="#架构示意" class="headerlink" title="架构示意"></a>架构示意</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">Level 1 — 粗粒度路由（Category Skill）</span><br><span class="line">├── &quot;文档处理&quot; —— 用户提到文件、导出、格式转换</span><br><span class="line">│   ├── Level 2 — 细分（Domain Skill）</span><br><span class="line">│   │   ├── pdf skill   —— 涉及 .pdf</span><br><span class="line">│   │   ├── docx skill  —— 涉及 Word/文档</span><br><span class="line">│   │   ├── xlsx skill  —— 涉及表格/CSV</span><br><span class="line">│   │   └── pptx skill  —— 涉及演示/幻灯片</span><br><span class="line">│</span><br><span class="line">├── &quot;工程实践&quot; —— 涉及代码、测试、部署</span><br><span class="line">│   ├── apps/web:deploy  ← 只在 apps/web 下可见</span><br><span class="line">│   ├── apps/api:deploy  ← 只在 apps/api 下可见</span><br><span class="line">│   └── review skill</span><br><span class="line">│</span><br><span class="line">└── &quot;写作与设计&quot; —— 涉及内容创作</span><br><span class="line">    ├── frontend-design skill</span><br><span class="line">    ├── canvas-design skill</span><br><span class="line">    └── writing-shape skill</span><br></pre></td></tr></table></figure>
+
+<h3 id="落地方式"><a href="#落地方式" class="headerlink" title="落地方式"></a>落地方式</h3><table>
+<thead>
+<tr>
+<th>层级</th>
+<th>description 策略</th>
+<th>责任</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Parent Skill</td>
+<td>写<strong>广</strong>——覆盖整个大类的触发场景</td>
+<td>召回（高 recall）</td>
+</tr>
+<tr>
+<td>Child Skill</td>
+<td>写<strong>窄</strong>——精准匹配子场景，声明”不适用”</td>
+<td>精排（高 precision）</td>
+</tr>
+</tbody></table>
+<p><strong>Tree 的好处：</strong></p>
+<ul>
+<li>每个节点只需要和自己的兄弟节点区分，不需要和全局所有 skill 竞争</li>
+<li>模型先路由到子树，再在子树内精确匹配——两步路由，每步的候选集都很小</li>
+<li>目录 scope 是物理隔离，<code>apps/web:deploy</code> 和 <code>apps/api:deploy</code> 永远不会同时出现在候选列表里</li>
+</ul>
+<hr>
+<h2 id="五、策略三：声明不适用的场景（Negative-Space）"><a href="#五、策略三：声明不适用的场景（Negative-Space）" class="headerlink" title="五、策略三：声明不适用的场景（Negative Space）"></a>五、策略三：声明不适用的场景（Negative Space）</h2><p>负向描述不是”建议”，是<strong>必须品</strong>。在 description 里显式划出边界，直接解决 <strong>near-miss 误触发</strong>——即两个 Skill 关键词重叠但领域不同时的竞争。</p>
+<h3 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">description:</span> <span class="string">&gt;</span></span><br><span class="line"><span class="string">  PDF manipulation: merge, split, rotate, OCR, form filling.</span></span><br><span class="line"><span class="string"></span>  </span><br><span class="line">  <span class="string">Use</span> <span class="string">when</span> <span class="string">user</span> <span class="string">mentions</span> <span class="string">.pdf</span> <span class="string">files</span> <span class="string">or</span> <span class="string">PDF-related</span> <span class="string">tasks.</span></span><br><span class="line">  </span><br><span class="line">  <span class="attr">Do NOT use for:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">Spreadsheets</span> <span class="string">(.xlsx,</span> <span class="string">.csv)</span> <span class="string">→</span> <span class="string">use</span> <span class="string">the</span> <span class="string">xlsx</span> <span class="string">skill</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">Word</span> <span class="string">documents</span> <span class="string">(.docx)</span> <span class="string">→</span> <span class="string">use</span> <span class="string">the</span> <span class="string">docx</span> <span class="string">skill</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">Presentations</span> <span class="string">(.pptx)</span> <span class="string">→</span> <span class="string">use</span> <span class="string">the</span> <span class="string">pptx</span> <span class="string">skill</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">User</span> <span class="string">says</span> <span class="string">&quot;read paper.pdf and summarize&quot;</span> <span class="string">→</span> <span class="string">just</span> <span class="string">read</span> <span class="string">the</span> <span class="string">file,</span> <span class="string">this</span> <span class="string">skill</span> <span class="string">not</span> <span class="string">needed</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">&quot;Send this PDF to Slack&quot;</span> <span class="string">→</span> <span class="string">attachment</span> <span class="string">routing,</span> <span class="string">not</span> <span class="string">PDF</span> <span class="string">manipulation</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="为什么有效-1"><a href="#为什么有效-1" class="headerlink" title="为什么有效"></a>为什么有效</h3><ul>
+<li>description 是同一层级的文本匹配，显式的 “Do NOT use for X” 给模型一个<strong>清晰的否定信号</strong></li>
+<li>比让模型自己推理边界可靠得多</li>
+<li>相当于在 prompt 层面做了 <strong>hard negative mining</strong>——直接告诉模型哪些相似场景不属于自己</li>
+<li>正向描述划定边界，负向描述修补边界上的漏洞——两个 skill 撞车位置往往是边缘地带</li>
+</ul>
+<h3 id="实践要点-1"><a href="#实践要点-1" class="headerlink" title="实践要点"></a>实践要点</h3><ul>
+<li>负样本越”近”越有价值：与相邻 Skill 的切分边界要写得具体</li>
+<li>不要写”不要用于数学计算”这种明显无交集的情况——那不是 near-miss</li>
+<li>可以用 <code>For those, use xxx, yyy, or zzz skills respectively</code> 来显式引导模型转投正确 Skill</li>
+</ul>
+<hr>
+<h2 id="六、策略四：召回-重排（Two-Stage-Retrieval）"><a href="#六、策略四：召回-重排（Two-Stage-Retrieval）" class="headerlink" title="六、策略四：召回 + 重排（Two-Stage Retrieval）"></a>六、策略四：召回 + 重排（Two-Stage Retrieval）</h2><p>这是信息检索领域的经典范式，直接映射到 Skill 系统的两级决策：</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>对应机制</th>
+<th>目标</th>
+<th>候选量</th>
+<th>精度要求</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>召回</strong> (Recall)</td>
+<td>description 匹配</td>
+<td>宁可多召，不可漏召</td>
+<td>3~5 个候选 Skill</td>
+<td>高召回、低精度</td>
+</tr>
+<tr>
+<td><strong>重排</strong> (Rerank)</td>
+<td>SKILL.md body 加载后模型二次判断</td>
+<td>从候选中挑最佳</td>
+<td>1 个最终选择</td>
+<td>高精度</td>
+</tr>
+</tbody></table>
+<h3 id="召回层设计"><a href="#召回层设计" class="headerlink" title="召回层设计"></a>召回层设计</h3><ul>
+<li>description 写”宽”一点，宁可多召回不少召回</li>
+<li>解决 Claude 等模型天然倾向 <strong>under-trigger</strong>（宁可不用也不误用）的问题</li>
+<li>可以用 <strong>pushy 语言</strong>：”Use this skill whenever the user mentions X, even if they don’t explicitly ask for Y”</li>
+</ul>
+<h3 id="重排层设计"><a href="#重排层设计" class="headerlink" title="重排层设计"></a>重排层设计</h3><p>在 SKILL.md body 的<strong>开头</strong>加入自检逻辑：</p>
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">## Before proceeding — check applicability</span></span><br><span class="line"></span><br><span class="line"><span class="bullet">1.</span> Is the user&#x27;s input actually a PDF file?</span><br><span class="line"><span class="bullet">   -</span> If they mention .xlsx → STOP, use the xlsx skill instead.</span><br><span class="line"><span class="bullet">   -</span> If they mention .docx → STOP, use the docx skill instead.</span><br><span class="line">   </span><br><span class="line"><span class="bullet">2.</span> Does the task need PDF-specific operations (merge, split, OCR, form fill)?</span><br><span class="line"><span class="bullet">   -</span> If it&#x27;s just &quot;read a file and answer questions&quot;, you may not need this skill.</span><br><span class="line">   </span><br><span class="line"><span class="bullet">3.</span> If uncertain, proceed. Better to help than to block.</span><br></pre></td></tr></table></figure>
+
+<h3 id="为什么不只在-description-层解决？"><a href="#为什么不只在-description-层解决？" class="headerlink" title="为什么不只在 description 层解决？"></a>为什么不只在 description 层解决？</h3><p>因为 description 只有 ~100 词的预算。没法同时做到”广召回”和”精过滤”。两阶段设计<strong>把这两个矛盾目标拆到两个层级</strong>——这正是 IR 领域几十年验证的黄金范式。</p>
+<h3 id="单阶段-vs-两阶段对比"><a href="#单阶段-vs-两阶段对比" class="headerlink" title="单阶段 vs 两阶段对比"></a>单阶段 vs 两阶段对比</h3><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>单阶段</th>
+<th>两阶段</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>候选集大小</td>
+<td>N 个全部</td>
+<td>K 个（K&#x3D;3~5）</td>
+</tr>
+<tr>
+<td>每个候选的注意力</td>
+<td>1&#x2F;N</td>
+<td>1&#x2F;K（大得多）</td>
+</tr>
+<tr>
+<td>区分难度</td>
+<td>从 N 个里选 1 个</td>
+<td>从 K 个里确认最对的</td>
+</tr>
+<tr>
+<td>负向描述的作用</td>
+<td>被稀释</td>
+<td>集中在候选对比上</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="七、四条策略的系统关系"><a href="#七、四条策略的系统关系" class="headerlink" title="七、四条策略的系统关系"></a>七、四条策略的系统关系</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">用户输入</span><br><span class="line">  │</span><br><span class="line">  ├─→ [策略一] 场景化 description —— 匹配用户原话 pattern，不做推理跳跃</span><br><span class="line">  │</span><br><span class="line">  ├─→ [策略二] Tree 层级路由 —— 逐级缩小候选集，O(N) → O(log N)</span><br><span class="line">  │</span><br><span class="line">  ├─→ [策略三] Negative space —— 显式排除 near-miss，做 hard negative</span><br><span class="line">  │</span><br><span class="line">  └─→ [策略四] 召回 + 重排 —— description 宽召回 → body 精筛，两级决策</span><br></pre></td></tr></table></figure>
+
+<p>四条策略不是替代关系，是<strong>叠加关系</strong>：</p>
+<ul>
+<li><strong>策略一</strong>解决 description 本身的质量——怎么说才能让模型精准匹配</li>
+<li><strong>策略二</strong>解决规模化——Skill 多了以后怎么不互相踩脚</li>
+<li><strong>策略三</strong>解决竞争——语义相邻的 Skill 怎么划清界限</li>
+<li><strong>策略四</strong>解决单层决策的天花板——用两阶段把精度推到极致</li>
+</ul>
+<p>单独用每一条都有收益，四条叠加才能撑起大规模 Skill 生态的命中率。最终的公式：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">命中率 = 场景描述(recall) × 负向排除(prerank) × Tree层级(routing) × 两阶段重排(rerank)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="八、辅助手段"><a href="#八、辅助手段" class="headerlink" title="八、辅助手段"></a>八、辅助手段</h2><h3 id="用-skill-creator-做基准测试"><a href="#用-skill-creator-做基准测试" class="headerlink" title="用 skill-creator 做基准测试"></a>用 skill-creator 做基准测试</h3><ul>
+<li><strong>Eval 测试</strong>：用一组用户输入测试 skill 是否正确触发</li>
+<li><strong>方差分析</strong>：多次运行看触发稳定性</li>
+<li><strong>描述优化</strong>：对照测试结果调优描述</li>
+</ul>
+<h3 id="控制-Skill-数量"><a href="#控制-Skill-数量" class="headerlink" title="控制 Skill 数量"></a>控制 Skill 数量</h3><p>不是所有 workflow 都值得做成 skill：</p>
+<ul>
+<li><strong>高频 + 固定流程</strong> → 适合做成 skill</li>
+<li><strong>低频 &#x2F; 一次性</strong> → 用指令或直接描述即可</li>
+<li><strong>变体太多</strong> → 不适合，LLM 很难判断该不该触发</li>
+</ul>
+<hr>
+<h2 id="九、检查清单"><a href="#九、检查清单" class="headerlink" title="九、检查清单"></a>九、检查清单</h2><p>添加新 skill 时，过一遍：</p>
+<ol>
+<li>☐ 描述里有没有<strong>用户会怎么说话</strong>的场景触发词？（而非能力说明）</li>
+<li>☐ 有没有写清楚<strong>什么情况下不要触发</strong>？（负向排除，尤其是 near-miss 场景）</li>
+<li>☐ 在 Tree 里的位置是否合理？兄弟节点之间有没有冲突？</li>
+<li>☐ Parent 写广（recall），Child 写窄（precision）？</li>
+<li>☐ 拿 10 条真实用户输入测试，命中率 &gt; 90%？</li>
+<li>☐ 这个 skill 的使用频率值得占用 prompt 空间吗？</li>
+</ol>
+<hr>
+<h2 id="十、补充：Description-自动化优化"><a href="#十、补充：Description-自动化优化" class="headerlink" title="十、补充：Description 自动化优化"></a>十、补充：Description 自动化优化</h2><p>除了设计层面的四条策略，也可以用量化工具持续迭代 description。</p>
+<h3 id="构建触发评估集"><a href="#构建触发评估集" class="headerlink" title="构建触发评估集"></a>构建触发评估集</h3><p>编写 20 条 eval queries：</p>
+<ul>
+<li><strong>10 条 should-trigger</strong>：不同措辞的同一意图，包含口语化、错别字、缩写</li>
+<li><strong>10 条 should-not-trigger</strong>：重点是 near-miss——关键词重叠但应触发其他 Skill 的情况</li>
+</ul>
+<h3 id="自动化优化循环"><a href="#自动化优化循环" class="headerlink" title="自动化优化循环"></a>自动化优化循环</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">python -m scripts.run_loop \</span><br><span class="line">  --eval-set trigger-eval.json \</span><br><span class="line">  --skill-path &lt;skill-path&gt; \</span><br><span class="line">  --model &lt;model-id&gt; \</span><br><span class="line">  --max-iterations 5</span><br></pre></td></tr></table></figure>
+
+<p>流程：</p>
+<ol>
+<li>60&#x2F;40 拆为 train&#x2F;test</li>
+<li>每条 query 跑 3 次取触发率（去噪声）</li>
+<li>分析失败案例，Claude 提出改进版 description</li>
+<li>在 train 上迭代，用 test 选最佳（防过拟合）</li>
+<li>输出 <code>best_description</code></li>
+</ol>
+<hr>
+<h2 id="十一、总结"><a href="#十一、总结" class="headerlink" title="十一、总结"></a>十一、总结</h2><table>
+<thead>
+<tr>
+<th>策略</th>
+<th>核心思想</th>
+<th>解决的问题</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>场景化描述</td>
+<td>写触发场景而非能力清单</td>
+<td>减少推理跳跃，提高匹配精度</td>
+</tr>
+<tr>
+<td>Tree 路由</td>
+<td>逐级缩小候选集</td>
+<td>规模化后 Skill 间竞争</td>
+</tr>
+<tr>
+<td>Negative Space</td>
+<td>显式声明不适用场景</td>
+<td>near-miss 误触发</td>
+</tr>
+<tr>
+<td>召回+重排</td>
+<td>两级决策 pipeline</td>
+<td>单层描述的信息瓶颈</td>
+</tr>
+</tbody></table>
+<p>这四个策略本质上是把<strong>信息检索领域几十年的方法论</strong>（TF-IDF、倒排索引、learning to rank）翻译成了 Agent Skill 系统的设计范式。当你的 Skill 数量从 5 个增长到 50 个时，这些策略的收益会从「锦上添花」变成「生存必需」。</p>
+<p>在 Claude Code 当前框架下，前三个手段已经能做到 90%+ 的命中率。两阶段 recall+rerank 是进一步提升到 95%+ 的理想方向。</p>
+<hr>
+<blockquote>
+<p>本文整理自 Claude Code Skill 系统的实战经验总结，融合信息检索领域的成熟方法论。</p>
+</blockquote>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://anlen123.github.io/blog">刘华强</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://anlen123.github.io/blog/2026/07/24/Agent-Skill%E5%91%BD%E4%B8%AD%E7%8E%87%E4%BF%9D%E9%9A%9C%E7%AD%96%E7%95%A5/">https://anlen123.github.io/blog/2026/07/24/Agent-Skill%E5%91%BD%E4%B8%AD%E7%8E%87%E4%BF%9D%E9%9A%9C%E7%AD%96%E7%95%A5/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://anlen123.github.io/blog" target="_blank">刘华强的笔记</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/blog/tags/Skill/">Skill</a><a class="post-meta__tags" href="/blog/tags/LLM/">LLM</a><a class="post-meta__tags" href="/blog/tags/%E5%91%BD%E4%B8%AD%E7%8E%87/">命中率</a><a class="post-meta__tags" href="/blog/tags/AI%E5%B7%A5%E7%A8%8B/">AI工程</a><a class="post-meta__tags" href="/blog/tags/AI-Agent/">AI Agent</a><a class="post-meta__tags" href="/blog/tags/%E8%B7%AF%E7%94%B1/">路由</a><a class="post-meta__tags" href="/blog/tags/%E4%BF%A1%E6%81%AF%E6%A3%80%E7%B4%A2/">信息检索</a></div><div class="post-share"><div class="social-share" data-image="/blog/blog/images/avatar.gif" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/blog/2026/07/24/StringBuilder%E5%BA%95%E5%B1%82%E6%BA%90%E7%A0%81%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/" title="StringBuilder底层源码原理详解——从源码到面试"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">StringBuilder底层源码原理详解——从源码到面试</div></div><div class="info-2"><div class="info-item-1">StringBuilder 底层源码原理详解——从源码到面试StringBuilder 是 Java 中最常用的字符串构建工具。很多人每天都在用 new StringBuilder().append(...)，但它的底层到底是怎么工作的？为什么它比 + 拼接快？容量扩容机制是怎样的？本文基于 JDK 8 源码，逐层拆解 StringBuilder 的核心实现原理。  一、类继承体系先看类图（简化）： 123AbstractStringBuilder (package-private)    ├── StringBuilder (public, 非线程安全)    └── StringBuffer  (public, 线程安全)  核心设计思想：StringBuilder 和 StringBuffer 的所有核心逻辑都在父类 AbstractStringBuilder 中。两个子类只是在外层加了同步控制（StringBuffer 用 synchronized），真正的 append&#x2F;insert&#x2F;delete 实现在父类里。 1234// StringBuild...</div></div></div></a><a class="pagination-related" href="/blog/2026/07/24/Spring-AOP%E4%B8%8E%E4%BA%8B%E5%8A%A1%E5%A4%B1%E6%95%88%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/" title="Spring AOP 与事务失效原理详解"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Spring AOP 与事务失效原理详解</div></div><div class="info-2"><div class="info-item-1">一、Spring AOP 的底层运行原理1. 代理模式Spring AOP 基于动态代理实现，有两种代理方式：    代理类型 适用条件 实现    JDK 动态代理 目标类实现了接口 java.lang.reflect.Proxy   CGLIB 代理 目标类没有实现接口（或强制使用 CGLIB） 字节码增强，生成目标类的子类   Spring Boot 2.x 开始默认使用 CGLIB 代理（spring.aop.proxy-target-class=true）。 2. 核心组件12345678910111213┌─────────────────────────────────────────────────────┐│                   调用链                              ││                                                     ││  调用者 ──→ 代理对象 ──→ Advisor 链 ──→ 目标对象       ││                     │   ...</div></div></div></a></nav><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/blog/blog/images/avatar.gif" onerror="this.onerror=null;this.src='/blog/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">刘华强</div><div class="author-info-description"></div><div class="site-data"><a href="/blog/archives/"><div class="headline">文章</div><div class="length-num">22</div></a><a href="/blog/tags/"><div class="headline">标签</div><div class="length-num">51</div></a><a href="/blog/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/anlen123"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/anlen123" target="_blank" title=""><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:1761512493@qq.com" target="_blank" title=""><i class="fas fa-envelope"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E9%97%AE%E9%A2%98%E8%83%8C%E6%99%AF"><span class="toc-number">1.</span> <span class="toc-text">一、问题背景</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%91%BD%E4%B8%AD%E7%8E%87%E7%9A%84%E7%93%B6%E9%A2%88%E5%9C%A8%E5%93%AA%E9%87%8C%EF%BC%9F"><span class="toc-number">1.1.</span> <span class="toc-text">命中率的瓶颈在哪里？</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E5%85%88%E7%90%86%E8%A7%A3%EF%BC%9ASkill-%E7%B3%BB%E7%BB%9F%E7%9A%84%E8%A7%A6%E5%8F%91%E6%9E%B6%E6%9E%84"><span class="toc-number">2.</span> <span class="toc-text">二、先理解：Skill 系统的触发架构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E7%AD%96%E7%95%A5%E4%B8%80%EF%BC%9A%E6%8F%8F%E8%BF%B0%E2%80%9D%E8%A7%A6%E5%8F%91%E5%9C%BA%E6%99%AF%E2%80%9D%E8%80%8C%E9%9D%9E%E2%80%9D%E8%83%BD%E5%8A%9B%E6%B8%85%E5%8D%95%E2%80%9D"><span class="toc-number">3.</span> <span class="toc-text">三、策略一：描述”触发场景”而非”能力清单”</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AF%B9%E6%AF%94"><span class="toc-number">3.1.</span> <span class="toc-text">对比</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E6%9C%89%E6%95%88"><span class="toc-number">3.2.</span> <span class="toc-text">为什么有效</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9E%E8%B7%B5%E8%A6%81%E7%82%B9"><span class="toc-number">3.3.</span> <span class="toc-text">实践要点</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E7%AD%96%E7%95%A5%E4%BA%8C%EF%BC%9A%E5%BB%BA%E7%AB%8B-Tree-%E5%B1%82%E7%BA%A7%E8%B7%AF%E7%94%B1"><span class="toc-number">4.</span> <span class="toc-text">四、策略二：建立 Tree 层级路由</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9E%B6%E6%9E%84%E7%A4%BA%E6%84%8F"><span class="toc-number">4.1.</span> <span class="toc-text">架构示意</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%90%BD%E5%9C%B0%E6%96%B9%E5%BC%8F"><span class="toc-number">4.2.</span> <span class="toc-text">落地方式</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E7%AD%96%E7%95%A5%E4%B8%89%EF%BC%9A%E5%A3%B0%E6%98%8E%E4%B8%8D%E9%80%82%E7%94%A8%E7%9A%84%E5%9C%BA%E6%99%AF%EF%BC%88Negative-Space%EF%BC%89"><span class="toc-number">5.</span> <span class="toc-text">五、策略三：声明不适用的场景（Negative Space）</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A4%BA%E4%BE%8B"><span class="toc-number">5.1.</span> <span class="toc-text">示例</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E6%9C%89%E6%95%88-1"><span class="toc-number">5.2.</span> <span class="toc-text">为什么有效</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9E%E8%B7%B5%E8%A6%81%E7%82%B9-1"><span class="toc-number">5.3.</span> <span class="toc-text">实践要点</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E7%AD%96%E7%95%A5%E5%9B%9B%EF%BC%9A%E5%8F%AC%E5%9B%9E-%E9%87%8D%E6%8E%92%EF%BC%88Two-Stage-Retrieval%EF%BC%89"><span class="toc-number">6.</span> <span class="toc-text">六、策略四：召回 + 重排（Two-Stage Retrieval）</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%AC%E5%9B%9E%E5%B1%82%E8%AE%BE%E8%AE%A1"><span class="toc-number">6.1.</span> <span class="toc-text">召回层设计</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%87%8D%E6%8E%92%E5%B1%82%E8%AE%BE%E8%AE%A1"><span class="toc-number">6.2.</span> <span class="toc-text">重排层设计</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E5%8F%AA%E5%9C%A8-description-%E5%B1%82%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="toc-number">6.3.</span> <span class="toc-text">为什么不只在 description 层解决？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8D%95%E9%98%B6%E6%AE%B5-vs-%E4%B8%A4%E9%98%B6%E6%AE%B5%E5%AF%B9%E6%AF%94"><span class="toc-number">6.4.</span> <span class="toc-text">单阶段 vs 两阶段对比</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%83%E3%80%81%E5%9B%9B%E6%9D%A1%E7%AD%96%E7%95%A5%E7%9A%84%E7%B3%BB%E7%BB%9F%E5%85%B3%E7%B3%BB"><span class="toc-number">7.</span> <span class="toc-text">七、四条策略的系统关系</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AB%E3%80%81%E8%BE%85%E5%8A%A9%E6%89%8B%E6%AE%B5"><span class="toc-number">8.</span> <span class="toc-text">八、辅助手段</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%94%A8-skill-creator-%E5%81%9A%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95"><span class="toc-number">8.1.</span> <span class="toc-text">用 skill-creator 做基准测试</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8E%A7%E5%88%B6-Skill-%E6%95%B0%E9%87%8F"><span class="toc-number">8.2.</span> <span class="toc-text">控制 Skill 数量</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B9%9D%E3%80%81%E6%A3%80%E6%9F%A5%E6%B8%85%E5%8D%95"><span class="toc-number">9.</span> <span class="toc-text">九、检查清单</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%81%E3%80%81%E8%A1%A5%E5%85%85%EF%BC%9ADescription-%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BC%98%E5%8C%96"><span class="toc-number">10.</span> <span class="toc-text">十、补充：Description 自动化优化</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9E%84%E5%BB%BA%E8%A7%A6%E5%8F%91%E8%AF%84%E4%BC%B0%E9%9B%86"><span class="toc-number">10.1.</span> <span class="toc-text">构建触发评估集</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BC%98%E5%8C%96%E5%BE%AA%E7%8E%AF"><span class="toc-number">10.2.</span> <span class="toc-text">自动化优化循环</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%81%E4%B8%80%E3%80%81%E6%80%BB%E7%BB%93"><span class="toc-number">11.</span> <span class="toc-text">十一、总结</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/24/StringBuilder%E5%BA%95%E5%B1%82%E6%BA%90%E7%A0%81%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/" title="StringBuilder底层源码原理详解——从源码到面试">StringBuilder底层源码原理详解——从源码到面试</a><time datetime="2026-07-24T02:00:00.000Z" title="发表于 2026-07-24 10:00:00">2026-07-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/24/Spring-AOP%E4%B8%8E%E4%BA%8B%E5%8A%A1%E5%A4%B1%E6%95%88%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/" title="Spring AOP 与事务失效原理详解">Spring AOP 与事务失效原理详解</a><time datetime="2026-07-23T16:00:00.000Z" title="发表于 2026-07-24 00:00:00">2026-07-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/24/Agent-Skill%E5%91%BD%E4%B8%AD%E7%8E%87%E4%BF%9D%E9%9A%9C%E7%AD%96%E7%95%A5/" title="Agent Skill 命中率保障策略——当 Skills 数量爆炸时如何精准路由">Agent Skill 命中率保障策略——当 Skills 数量爆炸时如何精准路由</a><time datetime="2026-07-23T16:00:00.000Z" title="发表于 2026-07-24 00:00:00">2026-07-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/23/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E5%9F%BA%E5%9B%A0%E6%B3%95%E8%AF%A6%E8%A7%A3/" title="分库分表基因法详解——从原理到实战">分库分表基因法详解——从原理到实战</a><time datetime="2026-07-23T07:00:00.000Z" title="发表于 2026-07-23 15:00:00">2026-07-23</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/17/Redis-Hash%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/" title="Redis Hash 扩容机制详解（1000 万数据场景）">Redis Hash 扩容机制详解（1000 万数据场景）</a><time datetime="2026-07-17T02:00:00.000Z" title="发表于 2026-07-17 10:00:00">2026-07-17</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By 刘华强</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.2</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.5</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/blog/js/utils.js?v=5.5.5"></script><script src="/blog/js/main.js?v=5.5.5"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/blog/js/search/local-search.js?v=5.5.5"></script></div></div></body></html>

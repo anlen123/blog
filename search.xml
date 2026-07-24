@@ -6336,133 +6336,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Skill 命中率保证策略</title>
-    <url>/blog/2026/07/24/Skill%E5%91%BD%E4%B8%AD%E7%8E%87%E4%BF%9D%E8%AF%81%E7%AD%96%E7%95%A5/</url>
-    <content><![CDATA[<h2 id="一、命中率的瓶颈在哪里？"><a href="#一、命中率的瓶颈在哪里？" class="headerlink" title="一、命中率的瓶颈在哪里？"></a>一、命中率的瓶颈在哪里？</h2><p>Skill 的触发依赖 <strong>LLM 阅读 skill 描述 → 判断是否匹配用户意图</strong> 这个过程。问题出在：</p>
-<table>
-<thead>
-<tr>
-<th>问题</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><strong>描述冲突</strong></td>
-<td>两个 skill 的描述都覆盖了同一个关键词（比如 <code>pdf</code> 和 <code>docx</code> 都可能匹配”处理文件”）</td>
-</tr>
-<tr>
-<td><strong>描述模糊</strong></td>
-<td>“当用户需要创建文档时使用”——到底是指什么文档？</td>
-</tr>
-<tr>
-<td><strong>上下文窗口竞争</strong></td>
-<td>skill 列表在 system prompt 里，数量越多，每个 skill 分到的”注意力”越少</td>
-</tr>
-<tr>
-<td><strong>LLM 的贪心匹配</strong></td>
-<td>模型倾向于选择第一个”看起来相关”的 skill，而不是最精确的那个</td>
-</tr>
-</tbody></table>
-<hr>
-<h2 id="二、四大核心策略"><a href="#二、四大核心策略" class="headerlink" title="二、四大核心策略"></a>二、四大核心策略</h2><h3 id="1-描述场景而非能力（最关键）"><a href="#1-描述场景而非能力（最关键）" class="headerlink" title="1. 描述场景而非能力（最关键）"></a>1. 描述场景而非能力（最关键）</h3><p>这是最容易被忽视的。很多 skill 描述写成了<strong>能力说明书</strong>：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">❌ 能力描述: &quot;这个 skill 可以处理 PDF 文件的创建、读取、编辑、合并和拆分&quot;</span><br><span class="line">   → 模型要想：&quot;用户要合并 PDF... 这算不算&#x27;处理&#x27;？&quot;</span><br><span class="line"></span><br><span class="line">✅ 场景描述: &quot;当用户说「帮我合并 PDF」「把这个 PDF 拆开」「提取 PDF 里的文字」「生成一份 PDF」时调用&quot;</span><br><span class="line">   → 模型直接匹配：「用户说了合并 PDF」→ 命中</span><br></pre></td></tr></table></figure>
-
-<p><strong>核心区别：</strong> 能力描述需要模型做一次<strong>语义推理</strong>（”合并 PDF” ⊆ “处理 PDF” 吗？），场景描述只需要做一次<strong>模式匹配</strong>（用户说的话里有没有这些字面片段）。LLM 在语义推理上会出错，但在字面&#x2F;近字面匹配上准确得多。</p>
-<p><strong>原则：</strong></p>
-<ul>
-<li>明确列出<strong>触发词</strong>（用户会怎么说话）</li>
-<li>区分度优先于覆盖面——宁可漏掉边缘场景，也不要和其他 skill 撞车</li>
-</ul>
-<h3 id="2-建立-Tree（层级-Skill-体系）"><a href="#2-建立-Tree（层级-Skill-体系）" class="headerlink" title="2. 建立 Tree（层级 Skill 体系）"></a>2. 建立 Tree（层级 Skill 体系）</h3><p>利用目录级 scope 天然形成树状结构：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">根层 (全局)</span><br><span class="line">├── 文件处理</span><br><span class="line">│   ├── pdf        ← 全局</span><br><span class="line">│   ├── xlsx       ← 全局</span><br><span class="line">│   └── docx       ← 全局</span><br><span class="line">├── 开发</span><br><span class="line">│   ├── apps/web:deploy    ← 只在 apps/web 下可见</span><br><span class="line">│   │   ├── apps/web:lint</span><br><span class="line">│   │   └── apps/web:test</span><br><span class="line">│   └── apps/api:deploy    ← 只在 apps/api 下可见</span><br><span class="line">└── 设计</span><br><span class="line">    ├── frontend-design</span><br><span class="line">    └── canvas-design</span><br></pre></td></tr></table></figure>
-
-<p><strong>Tree 的好处：</strong></p>
-<ul>
-<li>每个节点只需要和自己的兄弟节点区分，不需要和全局所有 skill 竞争</li>
-<li>模型先路由到子树，再在子树内精确匹配——两步路由，每步的候选集都很小</li>
-<li>目录 scope 是物理隔离，<code>apps/web:deploy</code> 和 <code>apps/api:deploy</code> 永远不会同时出现在候选列表里</li>
-</ul>
-<h3 id="3-表明不适用场景（负向描述）"><a href="#3-表明不适用场景（负向描述）" class="headerlink" title="3. 表明不适用场景（负向描述）"></a>3. 表明不适用场景（负向描述）</h3><p>负向描述不是”建议”，是<strong>必须品</strong>。它帮模型做减法——把不相关的 skill 从候选集里直接踢出去：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">skill: pdf</span><br><span class="line">描述: 当用户提到 .pdf 文件或要求生成 PDF 时调用。</span><br><span class="line">      不要调用的情况：</span><br><span class="line">      - 用户说的是「PDF 转 Word」→ 同时触发 pdf + docx，由后续重排决定</span><br><span class="line">      - 用户说的是「扫描这个 PDF 发给 Slack」→ 不是 PDF 操作需求，只是附件</span><br><span class="line">      - 用户说的是「帮我读一下 paper.pdf 然后总结」→ 只需要读文件，不需要 pdf skill</span><br></pre></td></tr></table></figure>
-
-<p><strong>为什么负向描述比正向更关键：</strong> 正向描述划定了 skill 的边界，负向描述<strong>修补了边界上的漏洞</strong>。两个 skill 撞车位置往往是边缘地带——恰好是负向描述能解决的地方。</p>
-<h3 id="4-召回-重排（两阶段架构）"><a href="#4-召回-重排（两阶段架构）" class="headerlink" title="4. 召回 + 重排（两阶段架构）"></a>4. 召回 + 重排（两阶段架构）</h3><p>这是最工程化的方案。单阶段匹配做不到高精度，两阶段把问题拆开：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">阶段一：召回（Recall）—— 宽进</span><br><span class="line">  - 把用户输入和所有 skill 描述做关键词/语义匹配</span><br><span class="line">  - 选出 top-K 个候选（K=3~5），宁多勿漏</span><br><span class="line">  - 这一阶段追求召回率（recall），不追求精确度</span><br><span class="line"></span><br><span class="line">阶段二：重排（Rerank）—— 严出</span><br><span class="line">  - 把候选 skill 的完整描述 + 用户输入一起丢给模型</span><br><span class="line">  - 模型逐个判断：「这个 skill 真的是用户想要的吗？」</span><br><span class="line">  - 输出最终选择 + 置信度</span><br><span class="line">  - 这一阶段追求精确度（precision）</span><br></pre></td></tr></table></figure>
-
-<p><strong>对比：</strong></p>
-<table>
-<thead>
-<tr>
-<th>维度</th>
-<th>单阶段</th>
-<th>两阶段</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>候选集大小</td>
-<td>N 个全部</td>
-<td>K 个（K&#x3D;3~5）</td>
-</tr>
-<tr>
-<td>每个候选的注意力</td>
-<td>1&#x2F;N</td>
-<td>1&#x2F;K（大得多）</td>
-</tr>
-<tr>
-<td>区分难度</td>
-<td>从 N 个里选 1 个</td>
-<td>从 K 个里确认最对的</td>
-</tr>
-<tr>
-<td>负向描述的作用</td>
-<td>被稀释</td>
-<td>集中在候选对比上</td>
-</tr>
-</tbody></table>
-<hr>
-<h2 id="三、辅助手段"><a href="#三、辅助手段" class="headerlink" title="三、辅助手段"></a>三、辅助手段</h2><h3 id="用-skill-creator-做基准测试"><a href="#用-skill-creator-做基准测试" class="headerlink" title="用 skill-creator 做基准测试"></a>用 skill-creator 做基准测试</h3><ul>
-<li><strong>Eval 测试</strong>：用一组用户输入测试 skill 是否正确触发</li>
-<li><strong>方差分析</strong>：多次运行看触发稳定性</li>
-<li><strong>描述优化</strong>：对照测试结果调优描述</li>
-</ul>
-<h3 id="控制-Skill-数量"><a href="#控制-Skill-数量" class="headerlink" title="控制 Skill 数量"></a>控制 Skill 数量</h3><p>不是所有 workflow 都值得做成 skill：</p>
-<ul>
-<li><strong>高频 + 固定流程</strong> → 适合做成 skill</li>
-<li><strong>低频 &#x2F; 一次性</strong> → 用指令或直接描述即可</li>
-<li><strong>变体太多</strong> → 不适合，LLM 很难判断该不该触发</li>
-</ul>
-<hr>
-<h2 id="四、可操作的检查清单"><a href="#四、可操作的检查清单" class="headerlink" title="四、可操作的检查清单"></a>四、可操作的检查清单</h2><p>添加新 skill 时，过一遍：</p>
-<ol>
-<li>☐ 描述里有没有<strong>用户会怎么说话</strong>的场景触发词？（而非能力说明）</li>
-<li>☐ 有没有写清楚<strong>什么情况下不要触发</strong>？（负向排除）</li>
-<li>☐ 在 Tree 里的位置是否合理？兄弟节点之间有没有冲突？</li>
-<li>☐ 拿 10 条真实用户输入测试，命中率 &gt; 90%？</li>
-<li>☐ 这个 skill 的使用频率值得占用 prompt 空间吗？</li>
-</ol>
-<hr>
-<h2 id="五、总结"><a href="#五、总结" class="headerlink" title="五、总结"></a>五、总结</h2><p>Skill 命中率的保证 &#x3D; <strong>写好场景触发词（recall）+ 写好排除条件（负向过滤）+ 用 Tree 缩小搜索空间 + 召回重排两阶段架构 + 用 skill-creator 做定量测试</strong>。</p>
-<p>最终的公式：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">命中率 = 场景描述(recall) × 负向排除(prerank) × Tree层级(routing) × 两阶段重排(rerank)</span><br></pre></td></tr></table></figure>
-
-<p>在 Claude Code 当前框架下，前三个手段已经能做到 90%+ 的命中率。两阶段 recall+rerank 是进一步提升到 95%+ 的理想方向。</p>
-<hr>
-<blockquote>
-<p>本文整理自 Claude Code Skill 系统的实战经验总结。</p>
-</blockquote>
-]]></content>
-      <categories>
-        <category>AI</category>
-      </categories>
-      <tags>
-        <tag>Skill</tag>
-        <tag>Agent</tag>
-        <tag>LLM</tag>
-        <tag>命中率</tag>
-        <tag>AI工程</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>StringBuilder底层源码原理详解——从源码到面试</title>
     <url>/blog/2026/07/24/StringBuilder%E5%BA%95%E5%B1%82%E6%BA%90%E7%A0%81%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/</url>
     <content><![CDATA[<h1 id="StringBuilder-底层源码原理详解——从源码到面试"><a href="#StringBuilder-底层源码原理详解——从源码到面试" class="headerlink" title="StringBuilder 底层源码原理详解——从源码到面试"></a>StringBuilder 底层源码原理详解——从源码到面试</h1><p><strong>StringBuilder</strong> 是 Java 中最常用的字符串构建工具。很多人每天都在用 <code>new StringBuilder().append(...)</code>，但它的底层到底是怎么工作的？为什么它比 <code>+</code> 拼接快？容量扩容机制是怎样的？本文基于 <strong>JDK 8</strong> 源码，逐层拆解 StringBuilder 的核心实现原理。</p>
@@ -6865,19 +6738,42 @@
   </entry>
   <entry>
     <title>Agent Skill 命中率保障策略——当 Skills 数量爆炸时如何精准路由</title>
-    <url>/blog/2025/07/24/Agent-Skill%E5%91%BD%E4%B8%AD%E7%8E%87%E4%BF%9D%E9%9A%9C%E7%AD%96%E7%95%A5/</url>
+    <url>/blog/2026/07/24/Agent-Skill%E5%91%BD%E4%B8%AD%E7%8E%87%E4%BF%9D%E9%9A%9C%E7%AD%96%E7%95%A5/</url>
     <content><![CDATA[<h2 id="一、问题背景"><a href="#一、问题背景" class="headerlink" title="一、问题背景"></a>一、问题背景</h2><p>当 Agent 系统中安装的 Skill 数量达到几十甚至上百个时，一个致命问题浮出水面：</p>
 <blockquote>
 <p><strong>用户说了一句话，Agent 能精准命中正确的 Skill 吗？</strong></p>
 </blockquote>
-<p>这本质上是信息检索中的 <strong>precision&#x2F;recall 权衡问题</strong>。如果命中率不足，整个 Skill 生态的价值大打折扣。</p>
-<p>本文从现有主流 Agent Skill 系统（Claude Code &#x2F; pi &#x2F; Skills CLI 生态）的设计出发，结合信息检索领域的成熟方法论，总结出四条核心保障策略。</p>
+<h3 id="命中率的瓶颈在哪里？"><a href="#命中率的瓶颈在哪里？" class="headerlink" title="命中率的瓶颈在哪里？"></a>命中率的瓶颈在哪里？</h3><p>Skill 的触发依赖 <strong>LLM 阅读 skill 描述 → 判断是否匹配用户意图</strong>，这个过程有四个核心瓶颈：</p>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>描述冲突</strong></td>
+<td>两个 skill 的描述覆盖了同一个关键词（比如 <code>pdf</code> 和 <code>docx</code> 都可能匹配”处理文件”）</td>
+</tr>
+<tr>
+<td><strong>描述模糊</strong></td>
+<td>“当用户需要创建文档时使用”——到底是指什么文档？模型要做语义推理，容易出错</td>
+</tr>
+<tr>
+<td><strong>上下文窗口竞争</strong></td>
+<td>skill 列表在 system prompt 里，数量越多，每个 skill 分到的”注意力”越少</td>
+</tr>
+<tr>
+<td><strong>LLM 的贪心匹配</strong></td>
+<td>模型倾向于选择第一个”看起来相关”的 skill，而不是最精确的那个</td>
+</tr>
+</tbody></table>
+<p>这本质上是信息检索中的 <strong>precision&#x2F;recall 权衡问题</strong>。本文从现有主流 Agent Skill 系统的设计出发，结合信息检索领域的成熟方法论，总结出四条核心保障策略。</p>
 <hr>
 <h2 id="二、先理解：Skill-系统的触发架构"><a href="#二、先理解：Skill-系统的触发架构" class="headerlink" title="二、先理解：Skill 系统的触发架构"></a>二、先理解：Skill 系统的触发架构</h2><p>当前主流 Skill 系统采用<strong>渐进式加载（Progressive Disclosure）</strong>：</p>
 <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Level 1: name + description  (~100 words)</span><br><span class="line">         → 始终存在于 Agent 上下文中，决定是否触发</span><br><span class="line">         </span><br><span class="line">Level 2: SKILL.md 正文        (&lt;500 lines)</span><br><span class="line">         → 仅在命中时加载进上下文</span><br><span class="line">         </span><br><span class="line">Level 3: 打包资源 (scripts/references/assets)</span><br><span class="line">         → 按需加载，可执行脚本无需加载</span><br></pre></td></tr></table></figure>
 
-<p><strong>关键认知</strong>：所有 Skill 的 <code>description</code> 字段同时竞争 Agent 的注意力。Agent 基于 description 判断”这个 Skill 值得调用吗？”——这是触发决策的唯一入口。</p>
-<p>因此，保障命中率的核心战场就是 <strong>description 的设计</strong>，以及如何让这一层决策更精准。</p>
+<p><strong>关键认知</strong>：所有 Skill 的 <code>description</code> 字段同时竞争 Agent 的注意力。Agent 基于 description 判断”这个 Skill 值得调用吗？”——这是触发决策的唯一入口。因此，保障命中率的核心战场就是 <strong>description 的设计</strong>。</p>
 <hr>
 <h2 id="三、策略一：描述”触发场景”而非”能力清单”"><a href="#三、策略一：描述”触发场景”而非”能力清单”" class="headerlink" title="三、策略一：描述”触发场景”而非”能力清单”"></a>三、策略一：描述”触发场景”而非”能力清单”</h2><p>这是最反直觉但最关键的一条原则。</p>
 <h3 id="对比"><a href="#对比" class="headerlink" title="对比"></a>对比</h3><table>
@@ -6889,18 +6785,19 @@
 </thead>
 <tbody><tr>
 <td>“处理 PDF 文件，支持合并、拆分、旋转、OCR”</td>
-<td>“Use when user mentions a .pdf file, asks to extract data from a scanned document, or needs to combine multiple PDFs”</td>
+<td>“当用户说「帮我合并 PDF」「把这个 PDF 拆开」「提取 PDF 里的文字」「生成一份 PDF」时调用”</td>
 </tr>
 <tr>
 <td>“前端 UI 生成工具，支持 React&#x2F;Vue&#x2F;Angular”</td>
-<td>“Use when user asks to build a landing page, dashboard, or web component — especially if they say ‘make it look good’”</td>
+<td>“当用户要求搭建落地页、仪表盘、Web 组件，尤其是说「做得好看一点」时调用”</td>
 </tr>
 <tr>
 <td>“数据库性能分析，支持 MySQL&#x2F;PostgreSQL&#x2F;MongoDB”</td>
-<td>“Use when user complains about slow queries, asks why a query is taking long, or mentions EXPLAIN&#x2F;慢查询&#x2F;索引优化”</td>
+<td>“当用户抱怨查询慢、问为什么 SQL 执行这么久、或提到 EXPLAIN&#x2F;慢查询&#x2F;索引优化时调用”</td>
 </tr>
 </tbody></table>
-<h3 id="为什么有效"><a href="#为什么有效" class="headerlink" title="为什么有效"></a>为什么有效</h3><ul>
+<h3 id="为什么有效"><a href="#为什么有效" class="headerlink" title="为什么有效"></a>为什么有效</h3><p><strong>核心区别：</strong> 能力描述需要模型做一次<strong>语义推理</strong>（”合并 PDF” ⊆ “处理 PDF” 吗？），场景描述只需要做一次<strong>模式匹配</strong>（用户说的话里有没有这些字面片段）。LLM 在语义推理上会出错，但在字面&#x2F;近字面匹配上准确得多。</p>
+<ul>
 <li><strong>能力清单</strong>让模型做推理跳跃：”这个 Skill 能干什么 → 用户现在需要这个吗？”（多了一步推理，增加错误概率）</li>
 <li><strong>场景描述</strong>直接匹配用户原话中的 pattern，近似于关键词匹配 + 语义扩展</li>
 </ul>
@@ -6908,10 +6805,11 @@
 <li>用户会说的话长什么样？——带具体文件名、列名、缩写、错别字、口语化表达</li>
 <li>好 query 示例：<code>&quot;ok so my boss just sent me this xlsx file (its in my downloads, called something like &#39;Q4 sales final FINAL v2.xlsx&#39;) and she wants me to add a column that shows the profit margin as a percentage...&quot;</code></li>
 <li>坏 query 示例：<code>&quot;Format this data&quot;</code>（太抽象，无法区分）</li>
+<li>区分度优先于覆盖面——宁可漏掉边缘场景，也不要和其他 skill 撞车</li>
 </ul>
 <hr>
 <h2 id="四、策略二：建立-Tree-层级路由"><a href="#四、策略二：建立-Tree-层级路由" class="headerlink" title="四、策略二：建立 Tree 层级路由"></a>四、策略二：建立 Tree 层级路由</h2><p>当 Skill 数量突破临界点（通常 &gt;30），扁平列表的 description 之间必然出现语义重叠。<strong>Tree 路由</strong>将 O(N) 的扁平匹配降为 O(log N)。</p>
-<h3 id="架构示意"><a href="#架构示意" class="headerlink" title="架构示意"></a>架构示意</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Level 1 — 粗粒度路由（Category Skill）</span><br><span class="line">├── &quot;文档处理&quot; —— 用户提到文件、导出、格式转换</span><br><span class="line">│   ├── Level 2 — 细分（Domain Skill）</span><br><span class="line">│   │   ├── pdf skill   —— 涉及 .pdf</span><br><span class="line">│   │   ├── docx skill  —— 涉及 Word/文档</span><br><span class="line">│   │   ├── xlsx skill  —— 涉及表格/CSV</span><br><span class="line">│   │   └── pptx skill  —— 涉及演示/幻灯片</span><br><span class="line">│</span><br><span class="line">├── &quot;工程实践&quot; —— 涉及代码、测试、部署</span><br><span class="line">│   ├── tdd skill</span><br><span class="line">│   ├── review skill</span><br><span class="line">│   └── diagnose skill</span><br><span class="line">│</span><br><span class="line">└── &quot;写作与设计&quot; —— 涉及内容创作</span><br><span class="line">    ├── frontend-design skill</span><br><span class="line">    ├── canvas-design skill</span><br><span class="line">    └── writing-shape skill</span><br></pre></td></tr></table></figure>
+<h3 id="架构示意"><a href="#架构示意" class="headerlink" title="架构示意"></a>架构示意</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Level 1 — 粗粒度路由（Category Skill）</span><br><span class="line">├── &quot;文档处理&quot; —— 用户提到文件、导出、格式转换</span><br><span class="line">│   ├── Level 2 — 细分（Domain Skill）</span><br><span class="line">│   │   ├── pdf skill   —— 涉及 .pdf</span><br><span class="line">│   │   ├── docx skill  —— 涉及 Word/文档</span><br><span class="line">│   │   ├── xlsx skill  —— 涉及表格/CSV</span><br><span class="line">│   │   └── pptx skill  —— 涉及演示/幻灯片</span><br><span class="line">│</span><br><span class="line">├── &quot;工程实践&quot; —— 涉及代码、测试、部署</span><br><span class="line">│   ├── apps/web:deploy  ← 只在 apps/web 下可见</span><br><span class="line">│   ├── apps/api:deploy  ← 只在 apps/api 下可见</span><br><span class="line">│   └── review skill</span><br><span class="line">│</span><br><span class="line">└── &quot;写作与设计&quot; —— 涉及内容创作</span><br><span class="line">    ├── frontend-design skill</span><br><span class="line">    ├── canvas-design skill</span><br><span class="line">    └── writing-shape skill</span><br></pre></td></tr></table></figure>
 
 <h3 id="落地方式"><a href="#落地方式" class="headerlink" title="落地方式"></a>落地方式</h3><table>
 <thead>
@@ -6932,15 +6830,21 @@
 <td>精排（高 precision）</td>
 </tr>
 </tbody></table>
-<p>也可以利用 Progressive Disclosure 的 Level 3：Parent Skill 的 body 里写路由逻辑，根据用户意图动态加载不同的 <code>references/</code>。</p>
+<p><strong>Tree 的好处：</strong></p>
+<ul>
+<li>每个节点只需要和自己的兄弟节点区分，不需要和全局所有 skill 竞争</li>
+<li>模型先路由到子树，再在子树内精确匹配——两步路由，每步的候选集都很小</li>
+<li>目录 scope 是物理隔离，<code>apps/web:deploy</code> 和 <code>apps/api:deploy</code> 永远不会同时出现在候选列表里</li>
+</ul>
 <hr>
-<h2 id="五、策略三：声明不适用的场景（Negative-Space）"><a href="#五、策略三：声明不适用的场景（Negative-Space）" class="headerlink" title="五、策略三：声明不适用的场景（Negative Space）"></a>五、策略三：声明不适用的场景（Negative Space）</h2><p>在 description 里显式划出边界，直接解决 <strong>near-miss 误触发</strong>——即两个 Skill 关键词重叠但领域不同时的竞争。</p>
-<h3 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">description:</span> <span class="string">&gt;</span></span><br><span class="line"><span class="string">  PDF manipulation: merge, split, rotate, OCR, form filling.</span></span><br><span class="line"><span class="string"></span>  </span><br><span class="line">  <span class="string">Use</span> <span class="string">when</span> <span class="string">user</span> <span class="string">mentions</span> <span class="string">.pdf</span> <span class="string">files</span> <span class="string">or</span> <span class="string">PDF-related</span> <span class="string">tasks.</span></span><br><span class="line">  </span><br><span class="line">  <span class="attr">Do NOT use for:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">Spreadsheets</span> <span class="string">(.xlsx,</span> <span class="string">.csv)</span> <span class="string">→</span> <span class="string">use</span> <span class="string">the</span> <span class="string">xlsx</span> <span class="string">skill</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">Word</span> <span class="string">documents</span> <span class="string">(.docx)</span> <span class="string">→</span> <span class="string">use</span> <span class="string">the</span> <span class="string">docx</span> <span class="string">skill</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">Presentations</span> <span class="string">(.pptx)</span> <span class="string">→</span> <span class="string">use</span> <span class="string">the</span> <span class="string">pptx</span> <span class="string">skill</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">General</span> <span class="string">file</span> <span class="string">format</span> <span class="string">questions</span></span><br></pre></td></tr></table></figure>
+<h2 id="五、策略三：声明不适用的场景（Negative-Space）"><a href="#五、策略三：声明不适用的场景（Negative-Space）" class="headerlink" title="五、策略三：声明不适用的场景（Negative Space）"></a>五、策略三：声明不适用的场景（Negative Space）</h2><p>负向描述不是”建议”，是<strong>必须品</strong>。在 description 里显式划出边界，直接解决 <strong>near-miss 误触发</strong>——即两个 Skill 关键词重叠但领域不同时的竞争。</p>
+<h3 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">description:</span> <span class="string">&gt;</span></span><br><span class="line"><span class="string">  PDF manipulation: merge, split, rotate, OCR, form filling.</span></span><br><span class="line"><span class="string"></span>  </span><br><span class="line">  <span class="string">Use</span> <span class="string">when</span> <span class="string">user</span> <span class="string">mentions</span> <span class="string">.pdf</span> <span class="string">files</span> <span class="string">or</span> <span class="string">PDF-related</span> <span class="string">tasks.</span></span><br><span class="line">  </span><br><span class="line">  <span class="attr">Do NOT use for:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">Spreadsheets</span> <span class="string">(.xlsx,</span> <span class="string">.csv)</span> <span class="string">→</span> <span class="string">use</span> <span class="string">the</span> <span class="string">xlsx</span> <span class="string">skill</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">Word</span> <span class="string">documents</span> <span class="string">(.docx)</span> <span class="string">→</span> <span class="string">use</span> <span class="string">the</span> <span class="string">docx</span> <span class="string">skill</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">Presentations</span> <span class="string">(.pptx)</span> <span class="string">→</span> <span class="string">use</span> <span class="string">the</span> <span class="string">pptx</span> <span class="string">skill</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">User</span> <span class="string">says</span> <span class="string">&quot;read paper.pdf and summarize&quot;</span> <span class="string">→</span> <span class="string">just</span> <span class="string">read</span> <span class="string">the</span> <span class="string">file,</span> <span class="string">this</span> <span class="string">skill</span> <span class="string">not</span> <span class="string">needed</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">&quot;Send this PDF to Slack&quot;</span> <span class="string">→</span> <span class="string">attachment</span> <span class="string">routing,</span> <span class="string">not</span> <span class="string">PDF</span> <span class="string">manipulation</span></span><br></pre></td></tr></table></figure>
 
 <h3 id="为什么有效-1"><a href="#为什么有效-1" class="headerlink" title="为什么有效"></a>为什么有效</h3><ul>
 <li>description 是同一层级的文本匹配，显式的 “Do NOT use for X” 给模型一个<strong>清晰的否定信号</strong></li>
 <li>比让模型自己推理边界可靠得多</li>
 <li>相当于在 prompt 层面做了 <strong>hard negative mining</strong>——直接告诉模型哪些相似场景不属于自己</li>
+<li>正向描述划定边界，负向描述修补边界上的漏洞——两个 skill 撞车位置往往是边缘地带</li>
 </ul>
 <h3 id="实践要点-1"><a href="#实践要点-1" class="headerlink" title="实践要点"></a>实践要点</h3><ul>
 <li>负样本越”近”越有价值：与相邻 Skill 的切分边界要写得具体</li>
@@ -6983,6 +6887,35 @@
 <figure class="highlight markdown"><table><tr><td class="code"><pre><span class="line"><span class="section">## Before proceeding — check applicability</span></span><br><span class="line"></span><br><span class="line"><span class="bullet">1.</span> Is the user&#x27;s input actually a PDF file?</span><br><span class="line"><span class="bullet">   -</span> If they mention .xlsx → STOP, use the xlsx skill instead.</span><br><span class="line"><span class="bullet">   -</span> If they mention .docx → STOP, use the docx skill instead.</span><br><span class="line">   </span><br><span class="line"><span class="bullet">2.</span> Does the task need PDF-specific operations (merge, split, OCR, form fill)?</span><br><span class="line"><span class="bullet">   -</span> If it&#x27;s just &quot;read a file and answer questions&quot;, you may not need this skill.</span><br><span class="line">   </span><br><span class="line"><span class="bullet">3.</span> If uncertain, proceed. Better to help than to block.</span><br></pre></td></tr></table></figure>
 
 <h3 id="为什么不只在-description-层解决？"><a href="#为什么不只在-description-层解决？" class="headerlink" title="为什么不只在 description 层解决？"></a>为什么不只在 description 层解决？</h3><p>因为 description 只有 ~100 词的预算。没法同时做到”广召回”和”精过滤”。两阶段设计<strong>把这两个矛盾目标拆到两个层级</strong>——这正是 IR 领域几十年验证的黄金范式。</p>
+<h3 id="单阶段-vs-两阶段对比"><a href="#单阶段-vs-两阶段对比" class="headerlink" title="单阶段 vs 两阶段对比"></a>单阶段 vs 两阶段对比</h3><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>单阶段</th>
+<th>两阶段</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>候选集大小</td>
+<td>N 个全部</td>
+<td>K 个（K&#x3D;3~5）</td>
+</tr>
+<tr>
+<td>每个候选的注意力</td>
+<td>1&#x2F;N</td>
+<td>1&#x2F;K（大得多）</td>
+</tr>
+<tr>
+<td>区分难度</td>
+<td>从 N 个里选 1 个</td>
+<td>从 K 个里确认最对的</td>
+</tr>
+<tr>
+<td>负向描述的作用</td>
+<td>被稀释</td>
+<td>集中在候选对比上</td>
+</tr>
+</tbody></table>
 <hr>
 <h2 id="七、四条策略的系统关系"><a href="#七、四条策略的系统关系" class="headerlink" title="七、四条策略的系统关系"></a>七、四条策略的系统关系</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">用户输入</span><br><span class="line">  │</span><br><span class="line">  ├─→ [策略一] 场景化 description —— 匹配用户原话 pattern，不做推理跳跃</span><br><span class="line">  │</span><br><span class="line">  ├─→ [策略二] Tree 层级路由 —— 逐级缩小候选集，O(N) → O(log N)</span><br><span class="line">  │</span><br><span class="line">  ├─→ [策略三] Negative space —— 显式排除 near-miss，做 hard negative</span><br><span class="line">  │</span><br><span class="line">  └─→ [策略四] 召回 + 重排 —— description 宽召回 → body 精筛，两级决策</span><br></pre></td></tr></table></figure>
 
@@ -6993,9 +6926,33 @@
 <li><strong>策略三</strong>解决竞争——语义相邻的 Skill 怎么划清界限</li>
 <li><strong>策略四</strong>解决单层决策的天花板——用两阶段把精度推到极致</li>
 </ul>
-<p>单独用每一条都有收益，四条叠加才能撑起大规模 Skill 生态的命中率。</p>
+<p>单独用每一条都有收益，四条叠加才能撑起大规模 Skill 生态的命中率。最终的公式：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">命中率 = 场景描述(recall) × 负向排除(prerank) × Tree层级(routing) × 两阶段重排(rerank)</span><br></pre></td></tr></table></figure>
+
 <hr>
-<h2 id="八、补充：量产化保障——Description-自动化优化"><a href="#八、补充：量产化保障——Description-自动化优化" class="headerlink" title="八、补充：量产化保障——Description 自动化优化"></a>八、补充：量产化保障——Description 自动化优化</h2><p>除了设计层面的四条策略，Skill 系统也提供了量化的优化工具。</p>
+<h2 id="八、辅助手段"><a href="#八、辅助手段" class="headerlink" title="八、辅助手段"></a>八、辅助手段</h2><h3 id="用-skill-creator-做基准测试"><a href="#用-skill-creator-做基准测试" class="headerlink" title="用 skill-creator 做基准测试"></a>用 skill-creator 做基准测试</h3><ul>
+<li><strong>Eval 测试</strong>：用一组用户输入测试 skill 是否正确触发</li>
+<li><strong>方差分析</strong>：多次运行看触发稳定性</li>
+<li><strong>描述优化</strong>：对照测试结果调优描述</li>
+</ul>
+<h3 id="控制-Skill-数量"><a href="#控制-Skill-数量" class="headerlink" title="控制 Skill 数量"></a>控制 Skill 数量</h3><p>不是所有 workflow 都值得做成 skill：</p>
+<ul>
+<li><strong>高频 + 固定流程</strong> → 适合做成 skill</li>
+<li><strong>低频 &#x2F; 一次性</strong> → 用指令或直接描述即可</li>
+<li><strong>变体太多</strong> → 不适合，LLM 很难判断该不该触发</li>
+</ul>
+<hr>
+<h2 id="九、检查清单"><a href="#九、检查清单" class="headerlink" title="九、检查清单"></a>九、检查清单</h2><p>添加新 skill 时，过一遍：</p>
+<ol>
+<li>☐ 描述里有没有<strong>用户会怎么说话</strong>的场景触发词？（而非能力说明）</li>
+<li>☐ 有没有写清楚<strong>什么情况下不要触发</strong>？（负向排除，尤其是 near-miss 场景）</li>
+<li>☐ 在 Tree 里的位置是否合理？兄弟节点之间有没有冲突？</li>
+<li>☐ Parent 写广（recall），Child 写窄（precision）？</li>
+<li>☐ 拿 10 条真实用户输入测试，命中率 &gt; 90%？</li>
+<li>☐ 这个 skill 的使用频率值得占用 prompt 空间吗？</li>
+</ol>
+<hr>
+<h2 id="十、补充：Description-自动化优化"><a href="#十、补充：Description-自动化优化" class="headerlink" title="十、补充：Description 自动化优化"></a>十、补充：Description 自动化优化</h2><p>除了设计层面的四条策略，也可以用量化工具持续迭代 description。</p>
 <h3 id="构建触发评估集"><a href="#构建触发评估集" class="headerlink" title="构建触发评估集"></a>构建触发评估集</h3><p>编写 20 条 eval queries：</p>
 <ul>
 <li><strong>10 条 should-trigger</strong>：不同措辞的同一意图，包含口语化、错别字、缩写</li>
@@ -7012,7 +6969,7 @@
 <li>输出 <code>best_description</code></li>
 </ol>
 <hr>
-<h2 id="九、总结"><a href="#九、总结" class="headerlink" title="九、总结"></a>九、总结</h2><table>
+<h2 id="十一、总结"><a href="#十一、总结" class="headerlink" title="十一、总结"></a>十一、总结</h2><table>
 <thead>
 <tr>
 <th>策略</th>
@@ -7042,6 +6999,11 @@
 </tr>
 </tbody></table>
 <p>这四个策略本质上是把<strong>信息检索领域几十年的方法论</strong>（TF-IDF、倒排索引、learning to rank）翻译成了 Agent Skill 系统的设计范式。当你的 Skill 数量从 5 个增长到 50 个时，这些策略的收益会从「锦上添花」变成「生存必需」。</p>
+<p>在 Claude Code 当前框架下，前三个手段已经能做到 90%+ 的命中率。两阶段 recall+rerank 是进一步提升到 95%+ 的理想方向。</p>
+<hr>
+<blockquote>
+<p>本文整理自 Claude Code Skill 系统的实战经验总结，融合信息检索领域的成熟方法论。</p>
+</blockquote>
 ]]></content>
       <categories>
         <category>AI</category>
@@ -7049,6 +7011,8 @@
       <tags>
         <tag>Skill</tag>
         <tag>LLM</tag>
+        <tag>命中率</tag>
+        <tag>AI工程</tag>
         <tag>AI Agent</tag>
         <tag>路由</tag>
         <tag>信息检索</tag>
