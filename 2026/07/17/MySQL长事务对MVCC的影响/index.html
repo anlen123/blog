@@ -1,0 +1,298 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>MySQL 长事务对 MVCC 的影响 | 刘华强的笔记</title><meta name="author" content="刘华强"><meta name="copyright" content="刘华强"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="MySQL 长事务对 MVCC 的影响这是面试高频题，也是线上故障的常见根源。要理解长事务的危害，必须先清楚 MVCC 的几个核心组件。 一、MVCC 核心组件速览InnoDB 的 MVCC（多版本并发控制） 通过维护同一行数据的多个版本，实现读写不阻塞。关键组件：    组件 作用    Undo Log（回滚日志） 记录行数据的旧版本，用于事务回滚和构造一致性读的快照   Read View（">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL 长事务对 MVCC 的影响">
+<meta property="og:url" content="https://anlen123.github.io/blog/2026/07/17/MySQL%E9%95%BF%E4%BA%8B%E5%8A%A1%E5%AF%B9MVCC%E7%9A%84%E5%BD%B1%E5%93%8D/index.html">
+<meta property="og:site_name" content="刘华强的笔记">
+<meta property="og:description" content="MySQL 长事务对 MVCC 的影响这是面试高频题，也是线上故障的常见根源。要理解长事务的危害，必须先清楚 MVCC 的几个核心组件。 一、MVCC 核心组件速览InnoDB 的 MVCC（多版本并发控制） 通过维护同一行数据的多个版本，实现读写不阻塞。关键组件：    组件 作用    Undo Log（回滚日志） 记录行数据的旧版本，用于事务回滚和构造一致性读的快照   Read View（">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://anlen123.github.io/blog/blog/images/avatar.gif">
+<meta property="article:published_time" content="2026-07-17T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-07-17T10:50:20.760Z">
+<meta property="article:author" content="刘华强">
+<meta property="article:tag" content="MVCC">
+<meta property="article:tag" content="MySQL">
+<meta property="article:tag" content="事务">
+<meta property="article:tag" content="性能优化">
+<meta property="article:tag" content="面试">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://anlen123.github.io/blog/blog/images/avatar.gif"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "MySQL 长事务对 MVCC 的影响",
+  "url": "https://anlen123.github.io/blog/2026/07/17/MySQL%E9%95%BF%E4%BA%8B%E5%8A%A1%E5%AF%B9MVCC%E7%9A%84%E5%BD%B1%E5%93%8D/",
+  "image": "https://anlen123.github.io/blog/blog/images/avatar.gif",
+  "datePublished": "2026-07-17T02:00:00.000Z",
+  "dateModified": "2026-07-17T10:50:20.760Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "刘华强",
+      "url": "https://anlen123.github.io/blog"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/blog/blog/images/favicon-16x16-next.png"><link rel="canonical" href="https://anlen123.github.io/blog/2026/07/17/MySQL%E9%95%BF%E4%BA%8B%E5%8A%A1%E5%AF%B9MVCC%E7%9A%84%E5%BD%B1%E5%93%8D/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/blog/css/index.css?v=5.5.5"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/blog/',
+  algolia: undefined,
+  localSearch: {"path":"/blog/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'MySQL 长事务对 MVCC 的影响',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/blog/css/animal-island-theme.css"><meta name="generator" content="Hexo 8.1.2"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/blog/blog/images/avatar.gif" onerror="this.onerror=null;this.src='/blog/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/blog/archives/"><div class="headline">文章</div><div class="length-num">23</div></a><a href="/blog/tags/"><div class="headline">标签</div><div class="length-num">52</div></a><a href="/blog/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/blog/"><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/blog/about/"><span> 关于</span></a></div><div class="menus_item"><a class="site-page" href="/blog/travel-plan/"><span> 出行攻略</span></a></div><div class="menus_item"><a class="site-page" href="/blog/categories/"><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/blog/archives/"><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/blog/tags/"><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/blog/resume/"><span> 简历</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/blog/"><span class="site-name">刘华强的笔记</span></a><a class="nav-page-title" href="/blog/"><span class="site-name">MySQL 长事务对 MVCC 的影响</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/blog/"><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/blog/about/"><span> 关于</span></a></div><div class="menus_item"><a class="site-page" href="/blog/travel-plan/"><span> 出行攻略</span></a></div><div class="menus_item"><a class="site-page" href="/blog/categories/"><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/blog/archives/"><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/blog/tags/"><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/blog/resume/"><span> 简历</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">MySQL 长事务对 MVCC 的影响</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-07-17T02:00:00.000Z" title="发表于 2026-07-17 10:00:00">2026-07-17</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-07-17T10:50:20.760Z" title="更新于 2026-07-17 18:50:20">2026-07-17</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/blog/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h1 id="MySQL-长事务对-MVCC-的影响"><a href="#MySQL-长事务对-MVCC-的影响" class="headerlink" title="MySQL 长事务对 MVCC 的影响"></a>MySQL 长事务对 MVCC 的影响</h1><p>这是面试高频题，也是线上故障的常见根源。要理解长事务的危害，必须先清楚 MVCC 的几个核心组件。</p>
+<h2 id="一、MVCC-核心组件速览"><a href="#一、MVCC-核心组件速览" class="headerlink" title="一、MVCC 核心组件速览"></a>一、MVCC 核心组件速览</h2><p>InnoDB 的 <strong>MVCC（多版本并发控制）</strong> 通过维护同一行数据的多个版本，实现读写不阻塞。关键组件：</p>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Undo Log（回滚日志）</strong></td>
+<td>记录行数据的旧版本，用于事务回滚和构造一致性读的快照</td>
+</tr>
+<tr>
+<td><strong>Read View（读视图）</strong></td>
+<td>事务启动时记录当前活跃事务列表，决定哪些数据版本对本次查询可见</td>
+</tr>
+<tr>
+<td><strong>Purge Thread（清理线程）</strong></td>
+<td>异步清除不再被任何事务需要的旧版本数据</td>
+</tr>
+</tbody></table>
+<p>它们的关系：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">事务开始 → 生成 Read View（记录&quot;此刻谁还在跑&quot;）</span><br><span class="line">    ↓</span><br><span class="line">其他事务修改数据 → 写入 Undo Log（保留旧版本）</span><br><span class="line">    ↓</span><br><span class="line">Purge Thread 定期扫描 → 找到&quot;没人还需要&quot;的旧版本 → 物理删除</span><br><span class="line">    ↓</span><br><span class="line">判断标准：这个 Undo Log 的 trx_id 比最老的 Read View 还老吗？</span><br><span class="line">           是 → 可以删    否 → 还有人可能需要，保留</span><br></pre></td></tr></table></figure>
+
+<h2 id="二、长事务的-6-大影响"><a href="#二、长事务的-6-大影响" class="headerlink" title="二、长事务的 6 大影响"></a>二、长事务的 6 大影响</h2><h3 id="1-Undo-Log-堆积（最严重）"><a href="#1-Undo-Log-堆积（最严重）" class="headerlink" title="1. Undo Log 堆积（最严重）"></a>1. Undo Log 堆积（最严重）</h3><p>这是长事务最致命的后果：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">时间线：</span><br><span class="line">T1 长事务开始 ──────────────────────────────────► 提交</span><br><span class="line">    ↓                       ↓</span><br><span class="line">T2 更新某行 → undo v1      T5 又更新 → undo v3</span><br><span class="line">T3 再次更新 → undo v2      ...</span><br><span class="line">T4 删除该行 → undo v4</span><br><span class="line"></span><br><span class="line">所有这些 undo log 都无法被 purge！</span><br><span class="line">因为 T1 的 Read View 比它们都老，理论上 T1 还可能沿着版本链读回来。</span><br></pre></td></tr></table></figure>
+
+<p><strong>后果</strong>：</p>
+<ul>
+<li>Undo 表空间（<code>innodb_undo_*</code>）持续膨胀，可能导致<strong>磁盘写满</strong></li>
+<li>即使长事务最终提交，已膨胀的空间也不会自动回收</li>
+</ul>
+<h3 id="2-Purge-Thread-被”卡住”"><a href="#2-Purge-Thread-被”卡住”" class="headerlink" title="2. Purge Thread 被”卡住”"></a>2. Purge Thread 被”卡住”</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">SHOW ENGINE INNODB STATUS\G</span><br><span class="line">-- 关注这一行：</span><br><span class="line">-- History list length 5839214   ← 正常应该 &lt; 1000，现在 580 万！</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>trx_rseg_history_len</code>（undo 历史链表长度）飙升至几百万甚至上千万</li>
+<li>Purge 线程虽然还在工作，但能清理的只是比长事务 Read View <strong>更老</strong>的数据（几乎没有）</li>
+<li>历史链表越长，每次有事务提交时查找”最老活跃 Read View”的开销越大</li>
+</ul>
+<h3 id="3-查询性能退化"><a href="#3-查询性能退化" class="headerlink" title="3. 查询性能退化"></a>3. 查询性能退化</h3><table>
+<thead>
+<tr>
+<th>退化类型</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>全表扫描变慢</td>
+<td>主键 B+Tree 中标记删除的行无法物理删除，叶子节点膨胀</td>
+</tr>
+<tr>
+<td>二级索引回表变慢</td>
+<td>索引中指向的旧版本主键记录堆积，回表时遍历版本链更长</td>
+</tr>
+<tr>
+<td>Buffer Pool 污染</td>
+<td>大量 undo 页频繁换入换出，挤走真正的热数据</td>
+</tr>
+</tbody></table>
+<h3 id="4-表空间膨胀（磁盘）"><a href="#4-表空间膨胀（磁盘）" class="headerlink" title="4. 表空间膨胀（磁盘）"></a>4. 表空间膨胀（磁盘）</h3><ul>
+<li>被标记删除的行不能物理清理，<strong>ibd 文件持续增长</strong></li>
+<li>Undo 表空间不可逆地膨胀</li>
+<li>即使长事务最终提交，释放的空间也不会还给操作系统（需要 <code>OPTIMIZE TABLE</code> 或重建表）</li>
+</ul>
+<h3 id="5-读取”过期”数据"><a href="#5-读取”过期”数据" class="headerlink" title="5. 读取”过期”数据"></a>5. 读取”过期”数据</h3><p>在 <code>REPEATABLE READ</code>（默认隔离级别）下，长事务看到的一直是事务开始时的快照：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">T1 开始（10:00），SELECT balance → 1000</span><br><span class="line">T2（10:30）UPDATE balance = 500，COMMIT</span><br><span class="line">T1（11:00）SELECT balance → 还是 1000  ← 基于快照，&quot;正确&quot;但过时</span><br></pre></td></tr></table></figure>
+
+<p>如果业务逻辑依赖其他事务已提交的数据做决策，会出现<strong>决策滞后</strong>。</p>
+<h3 id="6-锁的连锁反应"><a href="#6-锁的连锁反应" class="headerlink" title="6. 锁的连锁反应"></a>6. 锁的连锁反应</h3><p>长事务不只是 MVCC 的问题，锁也会牵连：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">长事务持有行锁（SELECT ... FOR UPDATE）</span><br><span class="line">    → 阻塞其他写入</span><br><span class="line">    → 阻塞方又持有自己的锁</span><br><span class="line">    → 形成锁等待链</span><br><span class="line"></span><br><span class="line">长事务持有元数据锁（MDL）</span><br><span class="line">    → DDL（ALTER TABLE）被阻塞</span><br><span class="line">    → Waiting for table metadata lock 堆积</span><br><span class="line">    → 后续所有请求排队，连接池打满</span><br></pre></td></tr></table></figure>
+
+<h2 id="三、为什么一个长事务就能拖垮整个实例？"><a href="#三、为什么一个长事务就能拖垮整个实例？" class="headerlink" title="三、为什么一个长事务就能拖垮整个实例？"></a>三、为什么一个长事务就能拖垮整个实例？</h2><p>核心逻辑链：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">一个长事务（数小时未提交）</span><br><span class="line">    ↓</span><br><span class="line">持有最老的 Read View</span><br><span class="line">    ↓</span><br><span class="line">它启动之后产生的所有 Undo Log 都无法 purge</span><br><span class="line">    ↓</span><br><span class="line">Undo 表空间持续膨胀 → 磁盘告警</span><br><span class="line">    ↓</span><br><span class="line">Purge 跟不上 → History list 长度数百万</span><br><span class="line">    ↓</span><br><span class="line">B+Tree 中标记删除的行无法物理清理 → 查询变慢</span><br><span class="line">    ↓</span><br><span class="line">慢查询堆积 → 连接数打满 → 服务不可用</span><br></pre></td></tr></table></figure>
+
+<p><strong>一个数小时未提交的事务，足以从存储层到性能层全链路恶化。</strong></p>
+<h2 id="四、关键监控指标"><a href="#四、关键监控指标" class="headerlink" title="四、关键监控指标"></a>四、关键监控指标</h2><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 1. 查看当前活跃事务及运行时间</span></span><br><span class="line"><span class="keyword">SELECT</span> </span><br><span class="line">    trx_id, </span><br><span class="line">    trx_state, </span><br><span class="line">    trx_started, </span><br><span class="line">    TIMESTAMPDIFF(<span class="keyword">SECOND</span>, trx_started, NOW()) <span class="keyword">AS</span> duration_sec,</span><br><span class="line">    trx_rows_locked, </span><br><span class="line">    trx_rows_modified</span><br><span class="line"><span class="keyword">FROM</span> INFORMATION_SCHEMA.INNODB_TRX</span><br><span class="line"><span class="keyword">ORDER</span> <span class="keyword">BY</span> trx_started;</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 2. 查看 undo 历史链表长度（最关键指标）</span></span><br><span class="line"><span class="keyword">SHOW</span> ENGINE INNODB STATUS\G</span><br><span class="line"><span class="comment">-- 搜索 &quot;History list length&quot;，正常应在几百以内</span></span><br><span class="line"></span><br><span class="line"><span class="comment">-- 3. 查看 undo 表空间大小</span></span><br><span class="line"><span class="keyword">SELECT</span> </span><br><span class="line">    NAME, </span><br><span class="line">    FILE_SIZE <span class="operator">/</span> <span class="number">1024</span> <span class="operator">/</span> <span class="number">1024</span> <span class="keyword">AS</span> size_mb </span><br><span class="line"><span class="keyword">FROM</span> INFORMATION_SCHEMA.INNODB_TABLESPACES </span><br><span class="line"><span class="keyword">WHERE</span> NAME <span class="keyword">LIKE</span> <span class="string">&#x27;undo%&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 4. 找出执行时间超过 N 秒的连接</span></span><br><span class="line"><span class="keyword">SELECT</span> </span><br><span class="line">    id, </span><br><span class="line">    <span class="keyword">user</span>, </span><br><span class="line">    host, </span><br><span class="line">    db, </span><br><span class="line">    command, </span><br><span class="line">    <span class="type">time</span>, </span><br><span class="line">    state,</span><br><span class="line">    info</span><br><span class="line"><span class="keyword">FROM</span> INFORMATION_SCHEMA.PROCESSLIST</span><br><span class="line"><span class="keyword">WHERE</span> command <span class="operator">!=</span> <span class="string">&#x27;Sleep&#x27;</span> </span><br><span class="line">  <span class="keyword">AND</span> <span class="type">time</span> <span class="operator">&gt;</span> <span class="number">60</span></span><br><span class="line"><span class="keyword">ORDER</span> <span class="keyword">BY</span> <span class="type">time</span> <span class="keyword">DESC</span>;</span><br></pre></td></tr></table></figure>
+
+<h2 id="五、应对策略"><a href="#五、应对策略" class="headerlink" title="五、应对策略"></a>五、应对策略</h2><table>
+<thead>
+<tr>
+<th>策略</th>
+<th>操作</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>预防</strong></td>
+<td><code>innodb_undo_log_truncate = ON</code></td>
+<td>启用 undo 表空间自动截断</td>
+</tr>
+<tr>
+<td><strong>预防</strong></td>
+<td><code>SET SESSION max_execution_time = 30000</code></td>
+<td>单条 SQL 最长执行 30 秒</td>
+</tr>
+<tr>
+<td><strong>预防</strong></td>
+<td><code>innodb_lock_wait_timeout = 10</code></td>
+<td>锁等待超时 10 秒自动放弃</td>
+</tr>
+<tr>
+<td><strong>检测</strong></td>
+<td>定时查询 <code>INNODB_TRX</code>，告警运行超过 60 秒的事务</td>
+<td>Prometheus + Grafana 或简单 cron</td>
+</tr>
+<tr>
+<td><strong>止损</strong></td>
+<td><code>KILL &lt;connection_id&gt;</code></td>
+<td>杀掉长事务，让 purge 恢复</td>
+</tr>
+<tr>
+<td><strong>事后</strong></td>
+<td><code>innodb_purge_threads = 4</code></td>
+<td>增加 purge 并行度加速清理</td>
+</tr>
+<tr>
+<td><strong>事后</strong></td>
+<td><code>OPTIMIZE TABLE xxx</code> 或 <code>ALTER TABLE xxx ENGINE=InnoDB</code></td>
+<td>重建表回收空间</td>
+</tr>
+</tbody></table>
+<h2 id="六、线上排查口诀"><a href="#六、线上排查口诀" class="headerlink" title="六、线上排查口诀"></a>六、线上排查口诀</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">发现 History list length 飙升</span><br><span class="line">    → 查 INNODB_TRX 找最老的事务</span><br><span class="line">    → 确认是什么业务、什么 SQL、为什么没提交</span><br><span class="line">    → 确认能否 kill（先和业务方确认）</span><br><span class="line">    → kill 后观察 History list 是否下降</span><br><span class="line">    → 下降速度取决于 purge_threads 和服务器负载</span><br><span class="line">    → 事后复盘：加超时监控、加告警、修业务 bug</span><br></pre></td></tr></table></figure>
+
+<h2 id="七、总结"><a href="#七、总结" class="headerlink" title="七、总结"></a>七、总结</h2><p>长事务对 MVCC 的核心危害是<strong>阻止 undo log 被 purge</strong>——一个事务拖得越久，它身后堆积的”历史版本垃圾”就越多，最终导致：</p>
+<ol>
+<li><strong>Undo 表空间膨胀</strong> → 磁盘告警</li>
+<li><strong>History list 暴涨</strong> → Purge 线程空转</li>
+<li><strong>查询变慢</strong> → 主键 B+Tree 膨胀、回表版本链变长</li>
+<li><strong>锁等待链</strong> → 连接池打满 → 服务不可用</li>
+</ol>
+<p><strong>线上只要出现一条持续数小时未提交的事务，就足以拖垮整个实例。</strong> 预防的核心是：设置合理的超时参数 + 监控活跃事务时长 + 及时发现和 kill。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://anlen123.github.io/blog">刘华强</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://anlen123.github.io/blog/2026/07/17/MySQL%E9%95%BF%E4%BA%8B%E5%8A%A1%E5%AF%B9MVCC%E7%9A%84%E5%BD%B1%E5%93%8D/">https://anlen123.github.io/blog/2026/07/17/MySQL%E9%95%BF%E4%BA%8B%E5%8A%A1%E5%AF%B9MVCC%E7%9A%84%E5%BD%B1%E5%93%8D/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://anlen123.github.io/blog" target="_blank">刘华强的笔记</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/blog/tags/%E9%9D%A2%E8%AF%95/">面试</a><a class="post-meta__tags" href="/blog/tags/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/">性能优化</a><a class="post-meta__tags" href="/blog/tags/MySQL/">MySQL</a><a class="post-meta__tags" href="/blog/tags/MVCC/">MVCC</a><a class="post-meta__tags" href="/blog/tags/%E4%BA%8B%E5%8A%A1/">事务</a></div><div class="post-share"><div class="social-share" data-image="/blog/blog/images/avatar.gif" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/blog/2026/07/23/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E5%9F%BA%E5%9B%A0%E6%B3%95%E8%AF%A6%E8%A7%A3/" title="分库分表基因法详解——从原理到实战"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">分库分表基因法详解——从原理到实战</div></div><div class="info-2"><div class="info-item-1">分库分表基因法详解——从原理到实战基因法是分库分表架构中一种经典的路由策略。它的核心思想极其巧妙：在数据写入时，将分片键的信息”编码”进业务 ID 中，使得后续通过业务 ID 查询时，无需跨库就能直接定位目标分片。 本质是”信息前置”——把路由所需的信息提前写入数据本身。  一、问题背景：为什么要用基因法？1.1 一个具体的场景假设电商系统分 32 个库，核心表如下：    表名 说明 分片键 分片算法    t_order 订单主表 user_id user_id % 32   t_order_item 订单明细表 user_id user_id % 32   两张表都按 user_id 分片，落在同一个库中。这样 “根据 user_id 查订单 + 订单明细” 非常高效——只需访问一个分片。 但业务上还有另一个高频查询： 123-- 用户在订单列表页点击某条订单，查看详情SELECT * FROM t_order WHERE order_id = 1892736451;SELECT * FROM t_order_item WHERE order_id = 1892736451...</div></div></div></a><a class="pagination-related" href="/blog/2026/07/17/Redis-Hash%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/" title="Redis Hash 扩容机制详解（1000 万数据场景）"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Redis Hash 扩容机制详解（1000 万数据场景）</div></div><div class="info-2"><div class="info-item-1">Redis Hash 扩容机制详解（1000 万数据场景）Redis Hash 底层用字典（dict） 存储，1000 万条数据要经历 20 多次扩容。如果一次性搬完，主线程会卡住数秒——这对 Redis 单线程模型来说是致命的。Redis 的解决方案是渐进式 rehash。 一、底层数据结构123456789101112typedef struct dict &#123;    dictht ht[2];        // 两个 hash table，用于渐进式 rehash    long rehashidx;      // rehash 进度，-1 表示未进行 rehash    int iterators;       // 安全迭代器计数&#125; dict;typedef struct dictht &#123;    dictEntry **table;   // bucket 数组    unsigned long size;  // bucket 数量（始终为 2^n）    unsigned long sizemask;  // size - 1，用于取...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/blog/2024/05/20/SQL%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98/" title="SQL 优化实战 — 从排查到根治的完整指南"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-05-20</div><div class="info-item-2">SQL 优化实战 — 从排查到根治的完整指南</div></div><div class="info-2"><div class="info-item-1">1. 发现问题慢查询日志123456-- 开启慢查询日志SET GLOBAL slow_query_log = &#x27;ON&#x27;;SET GLOBAL long_query_time = 1;  -- 超过1秒记录-- 查看慢查询配置SHOW VARIABLES LIKE &#x27;slow_query%&#x27;;SHOW VARIABLES LIKE &#x27;long_query_time&#x27;;  实时监控123456-- 查看当前运行的查询SHOW PROCESSLIST;SHOW FULL PROCESSLIST;-- 查看状态变量SHOW STATUS LIKE &#x27;Threads_running&#x27;;SHOW STATUS LIKE &#x27;Slow_queries&#x27;;   2. 分析 SQL — EXPLAIN1EXPLAIN SELECT * FROM orders WHERE user_id = 100;  关键字段解读   字段 含义 关注点    id 执行顺序 数字越大越先执行   select_t...</div></div></div></a><a class="pagination-related" href="/blog/2026/07/01/%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB%E6%80%A7%E5%8E%9F%E7%90%86/" title="事务隔离性的原理"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-01</div><div class="info-item-2">事务隔离性的原理</div></div><div class="info-2"><div class="info-item-1">事务隔离性的原理隔离性（Isolation）是 ACID 中的 I，核心问题是：多个事务同时读写同一数据时，如何让它们互不干扰？ 一、并发写 — 必须串行化两个事务不能同时写同一行，否则数据会损坏。这是通过 锁 来保证的。 行级锁（Row Lock）1234567事务 T1: UPDATE account SET balance = balance - 100 WHERE id = 1;         ↓ 对 id=1 这行加 X 锁（排他锁）事务 T2: UPDATE account SET balance = balance - 50  WHERE id = 1;         ↓ 也要对 id=1 加 X 锁 → 阻塞等待 T1 释放T1 提交 → 释放 X 锁 → T2 获得锁 → 继续执行  关键：写锁在事务提交后才释放（两阶段锁协议），这是隔离性的基础保证。 二、并发的核心矛盾：写 vs 读   场景 冲突程度 需要什么    写 vs 写 必须互斥 锁（上面讲了）   写 vs 读 不必互斥，但需要协调 多版本并发控制（MVCC）   三、MVCC — 现代数据...</div></div></div></a><a class="pagination-related" href="/blog/2026/07/24/StringBuilder%E5%BA%95%E5%B1%82%E6%BA%90%E7%A0%81%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/" title="StringBuilder底层源码原理详解——从源码到面试"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-24</div><div class="info-item-2">StringBuilder底层源码原理详解——从源码到面试</div></div><div class="info-2"><div class="info-item-1">StringBuilder 底层源码原理详解——从源码到面试StringBuilder 是 Java 中最常用的字符串构建工具。很多人每天都在用 new StringBuilder().append(...)，但它的底层到底是怎么工作的？为什么它比 + 拼接快？容量扩容机制是怎样的？本文基于 JDK 8 源码，逐层拆解 StringBuilder 的核心实现原理。  一、类继承体系先看类图（简化）： 123AbstractStringBuilder (package-private)    ├── StringBuilder (public, 非线程安全)    └── StringBuffer  (public, 线程安全)  核心设计思想：StringBuilder 和 StringBuffer 的所有核心逻辑都在父类 AbstractStringBuilder 中。两个子类只是在外层加了同步控制（StringBuffer 用 synchronized），真正的 append&#x2F;insert&#x2F;delete 实现在父类里。 1234// StringBuild...</div></div></div></a><a class="pagination-related" href="/blog/2026/07/17/Redis-Hash%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/" title="Redis Hash 扩容机制详解（1000 万数据场景）"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-17</div><div class="info-item-2">Redis Hash 扩容机制详解（1000 万数据场景）</div></div><div class="info-2"><div class="info-item-1">Redis Hash 扩容机制详解（1000 万数据场景）Redis Hash 底层用字典（dict） 存储，1000 万条数据要经历 20 多次扩容。如果一次性搬完，主线程会卡住数秒——这对 Redis 单线程模型来说是致命的。Redis 的解决方案是渐进式 rehash。 一、底层数据结构123456789101112typedef struct dict &#123;    dictht ht[2];        // 两个 hash table，用于渐进式 rehash    long rehashidx;      // rehash 进度，-1 表示未进行 rehash    int iterators;       // 安全迭代器计数&#125; dict;typedef struct dictht &#123;    dictEntry **table;   // bucket 数组    unsigned long size;  // bucket 数量（始终为 2^n）    unsigned long sizemask;  // size - 1，用于取...</div></div></div></a><a class="pagination-related" href="/blog/2024/01/01/%E9%9D%A2%E8%AF%95%E8%87%AA%E6%88%91%E4%BB%8B%E7%BB%8D/" title="面试自我介绍"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-01-01</div><div class="info-item-2">面试自我介绍</div></div><div class="info-2"><div class="info-item-1">面试官您好，我叫刘华强，有 5 年 Java 后端开发经验，目前主要在美团做供应链方向的后端研发。 我做过库存、采购、配送、开放接口、代仓 WMS、ERP 对接等业务，对供应链系统的核心链路比较熟悉。前两年主要负责库存模块建设，完善了出入库、调拨、盘点、批次调整等库存业务闭环，同时也做了库存预警、月结控制、数据归档等工作，保障库存数据准确性 最近几年我主要负责供应链开放对接方向，更多是在做平台化和标准化建设,供应链开放平台现在承载 60 多个开放接口；也主导重构了WMS对接平台，通过“标准层 + 差异层”的架构，把公共能力下沉，让新WMS系统接入更加快速高效。这个平台最终支撑了 35 家代仓上线，也明显降低了后续接入和维护成本。 另外，我还做过三方 ERP 主动集成平台，支持了5套ERP系统、20多个业务通道稳定运行。过程中我比较关注接口稳定性和数据一致性，比如幂等, 锁,轮询兜底这些机制都有实际落地经验。 我的特点是主人翁意识比较强，能够从业务理解、方案设计、开发交付到上线运维完整负责，能够快速理解复杂业务，也比较擅长把复杂对接场景抽象成可复用的平台能力。 </div></div></div></a><a class="pagination-related" href="/blog/2026/07/01/Java%E5%9B%9B%E7%A7%8D%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B%E8%AF%A6%E8%A7%A3/" title="Java 四种引用类型详解"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-01</div><div class="info-item-2">Java 四种引用类型详解</div></div><div class="info-2"><div class="info-item-1">Java 提供了四种引用类型来控制对象与 GC 之间的关系，核心问题是：一个对象被引用着，GC 能不能回收它？什么时候回收？    一、四种引用对比   引用类型 GC 回收时机 用途    强引用 绝不回收 正常编码，99% 的场景   软引用 内存不足时回收 缓存（如图片缓存）   弱引用 下次 GC 就回收 避免内存泄漏（如 WeakHashMap）   虚引用 任何时候，仅用于跟踪 管理堆外内存（如 DirectByteBuffer）   回收强度降序：强 → 软 → 弱 → 虚  二、强引用（Strong Reference）最普通的引用，Java 默认就是强引用： 1Object obj = new Object();  // obj 是强引用  规则：只要强引用链还在，GC 永远不会回收这个对象，哪怕 OOM。 12Object obj = new Object();obj = null;  // 强引用断了 → 下次 GC 可回收   三、软引用（Soft Reference）比强引用弱一级。内存够时不回收，内存不够时 GC 会回收。 12345678910111...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/blog/blog/images/avatar.gif" onerror="this.onerror=null;this.src='/blog/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">刘华强</div><div class="author-info-description"></div><div class="site-data"><a href="/blog/archives/"><div class="headline">文章</div><div class="length-num">23</div></a><a href="/blog/tags/"><div class="headline">标签</div><div class="length-num">52</div></a><a href="/blog/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/anlen123"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/anlen123" target="_blank" title=""><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:1761512493@qq.com" target="_blank" title=""><i class="fas fa-envelope"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#MySQL-%E9%95%BF%E4%BA%8B%E5%8A%A1%E5%AF%B9-MVCC-%E7%9A%84%E5%BD%B1%E5%93%8D"><span class="toc-number">1.</span> <span class="toc-text">MySQL 长事务对 MVCC 的影响</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81MVCC-%E6%A0%B8%E5%BF%83%E7%BB%84%E4%BB%B6%E9%80%9F%E8%A7%88"><span class="toc-number">1.1.</span> <span class="toc-text">一、MVCC 核心组件速览</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E9%95%BF%E4%BA%8B%E5%8A%A1%E7%9A%84-6-%E5%A4%A7%E5%BD%B1%E5%93%8D"><span class="toc-number">1.2.</span> <span class="toc-text">二、长事务的 6 大影响</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Undo-Log-%E5%A0%86%E7%A7%AF%EF%BC%88%E6%9C%80%E4%B8%A5%E9%87%8D%EF%BC%89"><span class="toc-number">1.2.1.</span> <span class="toc-text">1. Undo Log 堆积（最严重）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Purge-Thread-%E8%A2%AB%E2%80%9D%E5%8D%A1%E4%BD%8F%E2%80%9D"><span class="toc-number">1.2.2.</span> <span class="toc-text">2. Purge Thread 被”卡住”</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E6%9F%A5%E8%AF%A2%E6%80%A7%E8%83%BD%E9%80%80%E5%8C%96"><span class="toc-number">1.2.3.</span> <span class="toc-text">3. 查询性能退化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E8%A1%A8%E7%A9%BA%E9%97%B4%E8%86%A8%E8%83%80%EF%BC%88%E7%A3%81%E7%9B%98%EF%BC%89"><span class="toc-number">1.2.4.</span> <span class="toc-text">4. 表空间膨胀（磁盘）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-%E8%AF%BB%E5%8F%96%E2%80%9D%E8%BF%87%E6%9C%9F%E2%80%9D%E6%95%B0%E6%8D%AE"><span class="toc-number">1.2.5.</span> <span class="toc-text">5. 读取”过期”数据</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-%E9%94%81%E7%9A%84%E8%BF%9E%E9%94%81%E5%8F%8D%E5%BA%94"><span class="toc-number">1.2.6.</span> <span class="toc-text">6. 锁的连锁反应</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%80%E4%B8%AA%E9%95%BF%E4%BA%8B%E5%8A%A1%E5%B0%B1%E8%83%BD%E6%8B%96%E5%9E%AE%E6%95%B4%E4%B8%AA%E5%AE%9E%E4%BE%8B%EF%BC%9F"><span class="toc-number">1.3.</span> <span class="toc-text">三、为什么一个长事务就能拖垮整个实例？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E5%85%B3%E9%94%AE%E7%9B%91%E6%8E%A7%E6%8C%87%E6%A0%87"><span class="toc-number">1.4.</span> <span class="toc-text">四、关键监控指标</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E5%BA%94%E5%AF%B9%E7%AD%96%E7%95%A5"><span class="toc-number">1.5.</span> <span class="toc-text">五、应对策略</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E7%BA%BF%E4%B8%8A%E6%8E%92%E6%9F%A5%E5%8F%A3%E8%AF%80"><span class="toc-number">1.6.</span> <span class="toc-text">六、线上排查口诀</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%83%E3%80%81%E6%80%BB%E7%BB%93"><span class="toc-number">1.7.</span> <span class="toc-text">七、总结</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/24/StringBuilder%E5%BA%95%E5%B1%82%E6%BA%90%E7%A0%81%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/" title="StringBuilder底层源码原理详解——从源码到面试">StringBuilder底层源码原理详解——从源码到面试</a><time datetime="2026-07-24T02:00:00.000Z" title="发表于 2026-07-24 10:00:00">2026-07-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/24/Skill%E5%91%BD%E4%B8%AD%E7%8E%87%E4%BF%9D%E8%AF%81%E7%AD%96%E7%95%A5/" title="Skill 命中率保证策略">Skill 命中率保证策略</a><time datetime="2026-07-23T16:00:00.000Z" title="发表于 2026-07-24 00:00:00">2026-07-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/24/Spring-AOP%E4%B8%8E%E4%BA%8B%E5%8A%A1%E5%A4%B1%E6%95%88%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/" title="Spring AOP 与事务失效原理详解">Spring AOP 与事务失效原理详解</a><time datetime="2026-07-23T16:00:00.000Z" title="发表于 2026-07-24 00:00:00">2026-07-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/23/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E5%9F%BA%E5%9B%A0%E6%B3%95%E8%AF%A6%E8%A7%A3/" title="分库分表基因法详解——从原理到实战">分库分表基因法详解——从原理到实战</a><time datetime="2026-07-23T07:00:00.000Z" title="发表于 2026-07-23 15:00:00">2026-07-23</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/17/Redis-Hash%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/" title="Redis Hash 扩容机制详解（1000 万数据场景）">Redis Hash 扩容机制详解（1000 万数据场景）</a><time datetime="2026-07-17T02:00:00.000Z" title="发表于 2026-07-17 10:00:00">2026-07-17</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By 刘华强</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.2</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.5</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/blog/js/utils.js?v=5.5.5"></script><script src="/blog/js/main.js?v=5.5.5"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/blog/js/search/local-search.js?v=5.5.5"></script></div></div></body></html>

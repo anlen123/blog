@@ -1,0 +1,352 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Mafka 消息队列实践 | 刘华强的笔记</title><meta name="author" content="刘华强"><meta name="copyright" content="刘华强"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="二、什么是 Mafka？Mafka 是美团基础架构-MQ团队自 2016 年开始研发的消息队列中间件（当前 v2.0），底层基于 Apache Kafka，针对美团业务场景做了大量自研增强。 规模数据（截至 2019 年）：  已接入 12 个 BG 事业部（外卖、酒旅、金融、支付等） 超过 3.6 万个主题队列 日消息流量超 2300 亿条   三、核心使用场景（9 大场景）   场景 说明">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Mafka 消息队列实践">
+<meta property="og:url" content="https://anlen123.github.io/blog/2024/02/20/Mafka%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E5%AE%9E%E8%B7%B5/index.html">
+<meta property="og:site_name" content="刘华强的笔记">
+<meta property="og:description" content="二、什么是 Mafka？Mafka 是美团基础架构-MQ团队自 2016 年开始研发的消息队列中间件（当前 v2.0），底层基于 Apache Kafka，针对美团业务场景做了大量自研增强。 规模数据（截至 2019 年）：  已接入 12 个 BG 事业部（外卖、酒旅、金融、支付等） 超过 3.6 万个主题队列 日消息流量超 2300 亿条   三、核心使用场景（9 大场景）   场景 说明">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://anlen123.github.io/blog/blog/images/avatar.gif">
+<meta property="article:published_time" content="2024-02-20T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-07-01T06:19:09.923Z">
+<meta property="article:author" content="刘华强">
+<meta property="article:tag" content="Kafka">
+<meta property="article:tag" content="MQ">
+<meta property="article:tag" content="消息队列">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://anlen123.github.io/blog/blog/images/avatar.gif"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Mafka 消息队列实践",
+  "url": "https://anlen123.github.io/blog/2024/02/20/Mafka%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E5%AE%9E%E8%B7%B5/",
+  "image": "https://anlen123.github.io/blog/blog/images/avatar.gif",
+  "datePublished": "2024-02-20T02:00:00.000Z",
+  "dateModified": "2026-07-01T06:19:09.923Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "刘华强",
+      "url": "https://anlen123.github.io/blog"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/blog/blog/images/favicon-16x16-next.png"><link rel="canonical" href="https://anlen123.github.io/blog/2024/02/20/Mafka%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E5%AE%9E%E8%B7%B5/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/blog/css/index.css?v=5.5.5"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/blog/',
+  algolia: undefined,
+  localSearch: {"path":"/blog/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Mafka 消息队列实践',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/blog/css/animal-island-theme.css"><meta name="generator" content="Hexo 8.1.2"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/blog/blog/images/avatar.gif" onerror="this.onerror=null;this.src='/blog/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/blog/archives/"><div class="headline">文章</div><div class="length-num">23</div></a><a href="/blog/tags/"><div class="headline">标签</div><div class="length-num">52</div></a><a href="/blog/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/blog/"><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/blog/about/"><span> 关于</span></a></div><div class="menus_item"><a class="site-page" href="/blog/travel-plan/"><span> 出行攻略</span></a></div><div class="menus_item"><a class="site-page" href="/blog/categories/"><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/blog/archives/"><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/blog/tags/"><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/blog/resume/"><span> 简历</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/blog/"><span class="site-name">刘华强的笔记</span></a><a class="nav-page-title" href="/blog/"><span class="site-name">Mafka 消息队列实践</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/blog/"><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/blog/about/"><span> 关于</span></a></div><div class="menus_item"><a class="site-page" href="/blog/travel-plan/"><span> 出行攻略</span></a></div><div class="menus_item"><a class="site-page" href="/blog/categories/"><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/blog/archives/"><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/blog/tags/"><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/blog/resume/"><span> 简历</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Mafka 消息队列实践</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-02-20T02:00:00.000Z" title="发表于 2024-02-20 10:00:00">2024-02-20</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-07-01T06:19:09.923Z" title="更新于 2026-07-01 14:19:09">2026-07-01</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/blog/categories/%E4%B8%AD%E9%97%B4%E4%BB%B6/">中间件</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h2 id="二、什么是-Mafka？"><a href="#二、什么是-Mafka？" class="headerlink" title="二、什么是 Mafka？"></a>二、什么是 Mafka？</h2><p>Mafka 是美团基础架构-MQ团队自 2016 年开始研发的消息队列中间件（当前 v2.0），底层基于 Apache Kafka，针对美团业务场景做了大量自研增强。</p>
+<p>规模数据（截至 2019 年）：</p>
+<ul>
+<li>已接入 12 个 BG 事业部（外卖、酒旅、金融、支付等）</li>
+<li>超过 3.6 万个主题队列</li>
+<li>日消息流量超 2300 亿条</li>
+</ul>
+<hr>
+<h2 id="三、核心使用场景（9-大场景）"><a href="#三、核心使用场景（9-大场景）" class="headerlink" title="三、核心使用场景（9 大场景）"></a>三、核心使用场景（9 大场景）</h2><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>异步处理</td>
+<td>生产方无需等待消费方响应，全程异步</td>
+</tr>
+<tr>
+<td>系统解耦</td>
+<td>上下游系统互不感知，通过 MQ 松耦合通信</td>
+</tr>
+<tr>
+<td>流量削峰</td>
+<td>高峰期（秒杀等）将请求缓冲入 MQ，避免打垮下游</td>
+</tr>
+<tr>
+<td>发布&#x2F;订阅</td>
+<td>一条消息广播给多个消费方</td>
+</tr>
+<tr>
+<td>消息回放</td>
+<td>支持最长 7 天的历史消息重新消费</td>
+</tr>
+<tr>
+<td>中心化调度</td>
+<td>同机房&#x2F;同地域优先生产消费，降低跨机房流量</td>
+</tr>
+<tr>
+<td>延迟队列</td>
+<td>队列级别统一延迟时间</td>
+</tr>
+<tr>
+<td>延迟消息</td>
+<td>消息粒度（最短 5s，最长 30 天）灵活延迟投递</td>
+</tr>
+<tr>
+<td>Push 消费</td>
+<td>通过 PushServer 消费，消费端数量不再受 Partition 数量限制</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="四、核心功能详解"><a href="#四、核心功能详解" class="headerlink" title="四、核心功能详解"></a>四、核心功能详解</h2><p>🔁 重试与死信机制</p>
+<ul>
+<li>无限重试：返回 CONSUME_FAILURE 持续重试（需谨慎使用）</li>
+<li>有限重试：返回 RECONSUME_LATER，默认重试 3 次（共 4 次），超限丢弃</li>
+<li>死信队列：消费多次失败后投入死信队列，延迟后再重试，避免消费卡顿阻塞</li>
+</ul>
+<p>⚡ 生产端特性</p>
+<table>
+<thead>
+<tr>
+<th>发送方式</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>同步发送</td>
+<td>可靠性高，网络抖动时会阻塞</td>
+</tr>
+<tr>
+<td>异步发送</td>
+<td>吞吐大，宕机时缓存消息可能丢失</td>
+</tr>
+</tbody></table>
+<p>ACK 配置等级：</p>
+<ul>
+<li>ack&#x3D;-1 → 金融&#x2F;支付类（高可靠）</li>
+<li>ack&#x3D;1  → 普通业务（官方推荐）</li>
+<li>ack&#x3D;0  → 日志&#x2F;大数据（高吞吐）</li>
+</ul>
+<p>🏗️ 消费分配模式演进</p>
+<ol>
+<li>最初：每个集群单独分配（不均衡）</li>
+<li>粘性分配：减少 Partition 变动</li>
+<li>多集群调度：同机房优先 &#x2F; 地域敏感</li>
+<li>解决重复消费：30s_gap 机制（新 Partition 先挂起 30s）</li>
+<li>均衡分配（最新）：所有集群 Partition 作为整体统一分配，每个消费者数量差值 ≤ 1</li>
+</ol>
+<p>🔗 MDP 框架接入（Java）</p>
+<ul>
+<li>引入 mdp-boot-starter-mafka 依赖</li>
+<li>消费端通过 @MdpMafkaMsgReceive 注解监听方法</li>
+<li>生产端通过 @Autowired 注入 IProducerProcessor Bean</li>
+<li>支持多消费者&#x2F;多生产者配置（[i] 下标）</li>
+</ul>
+<hr>
+<h2 id="五、Mafka-vs-Kafka：优势对比"><a href="#五、Mafka-vs-Kafka：优势对比" class="headerlink" title="五、Mafka vs Kafka：优势对比"></a>五、Mafka vs Kafka：优势对比</h2><table>
+<thead>
+<tr>
+<th>对比维度</th>
+<th>Apache Kafka（原生）</th>
+<th>Mafka（美团自研）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>调度能力</td>
+<td>无中心化调度，客户端自行选 Broker</td>
+<td>✅ Castle 中心化调度，支持同机房&#x2F;地域优先</td>
+</tr>
+<tr>
+<td>延迟消息</td>
+<td>❌ 原生不支持</td>
+<td>✅ 消息粒度延迟（5s ~ 30天）+ 队列级延迟</td>
+</tr>
+<tr>
+<td>死信队列</td>
+<td>❌ 原生不支持</td>
+<td>✅ 内置死信机制，消费失败后延迟重投，不阻塞正常消息</td>
+</tr>
+<tr>
+<td>消息回溯</td>
+<td>支持（按 offset）</td>
+<td>✅ 支持按时间回溯（最大 7 天），更业务友好</td>
+</tr>
+<tr>
+<td>Push 消费</td>
+<td>仅 Pull 模式，消费者数 ≤ Partition 数</td>
+<td>✅ PushServer 消费，消费者数量无限制</td>
+</tr>
+<tr>
+<td>容灾能力</td>
+<td>需业务方自行处理</td>
+<td>✅ 内置机房容灾，多副本跨机房保障</td>
+</tr>
+<tr>
+<td>优先级队列</td>
+<td>❌ 不支持</td>
+<td>✅ 支持优先级队列生产&#x2F;消费</td>
+</tr>
+<tr>
+<td>事务消息</td>
+<td>支持（实现复杂）</td>
+<td>✅ 封装更完善（含回查机制）</td>
+</tr>
+<tr>
+<td>分配均衡</td>
+<td>基础 Range&#x2F;RoundRobin 策略</td>
+<td>✅ 跨集群全局均衡分配，更公平</td>
+</tr>
+<tr>
+<td>接入便捷性</td>
+<td>需自行配置</td>
+<td>✅ MDP 框架一键接入，注解驱动</td>
+</tr>
+<tr>
+<td>管理平台</td>
+<td>需自建或依赖第三方</td>
+<td>✅ 美团内部统一管控平台（权限&#x2F;监控&#x2F;配置）</td>
+</tr>
+<tr>
+<td>多语言支持</td>
+<td>官方多语言</td>
+<td>✅ Java&#x2F;C++&#x2F;PHP&#x2F;Go&#x2F;Python + Storm SDK</td>
+</tr>
+</tbody></table>
+<h3 id="核心优势总结"><a href="#核心优势总结" class="headerlink" title="核心优势总结"></a>核心优势总结</h3><p>Kafka（原生）&#x3D; 高吞吐 + 高可靠 + 分布式<br>↓ Mafka 在此基础上增加<br>Mafka &#x3D; Kafka 全部能力</p>
+<ul>
+<li>中心化调度（机房亲和性）</li>
+<li>延迟消息&#x2F;延迟队列</li>
+<li>死信队列（消费侧容错）</li>
+<li>PushServer（突破 Partition 限制）</li>
+<li>优先级队列</li>
+<li>按时间回溯</li>
+<li>机房容灾</li>
+<li>美团内部生态（MDP&#x2F;监控&#x2F;权限）</li>
+</ul>
+<hr>
+<p>📌 总结</p>
+<p>三篇文档从产品介绍 → 开发接入 → 深度学习三个维度全面覆盖了 Mafka 的知识体系。</p>
+<p>Mafka 相比原生 Kafka 的核心优势：</p>
+<ol>
+<li>运维层：中心化调度（Castle）+ 机房容灾，天然支持同机房优先</li>
+<li>功能层：延迟消息、死信队列、优先级队列是 Kafka 原生缺失的刚需能力</li>
+<li>消费层：PushServer 突破 Partition 数量限制，按时间回溯比按 offset 更友好</li>
+<li>接入层：MDP 框架注解驱动，与美团内部基础设施深度集成，开箱即用</li>
+</ol>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://anlen123.github.io/blog">刘华强</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://anlen123.github.io/blog/2024/02/20/Mafka%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E5%AE%9E%E8%B7%B5/">https://anlen123.github.io/blog/2024/02/20/Mafka%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E5%AE%9E%E8%B7%B5/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://anlen123.github.io/blog" target="_blank">刘华强的笔记</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/blog/tags/MQ/">MQ</a><a class="post-meta__tags" href="/blog/tags/Kafka/">Kafka</a><a class="post-meta__tags" href="/blog/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/">消息队列</a></div><div class="post-share"><div class="social-share" data-image="/blog/blog/images/avatar.gif" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/blog/2024/03/05/%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/" title="限流设计与实现"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">限流设计与实现</div></div><div class="info-2"><div class="info-item-1">一般开发开放平台做限流，本质上是在“流量控制 + 公平分配 + 资源保护 + 商业配额”之间找平衡。如果是开放给第三方调用的 API 平台，通常不会只做一个“每秒几次”的简单限流，而是会做一套分层、分维度、可配置、可观测的限流体系。  一、先说结论：开放平台限流一般怎么做通常会按下面这套思路落地：  限流维度设计   按 appKey &#x2F; clientId 按 租户 &#x2F; 商户 &#x2F; 企业 按 用户 按 IP 按 API接口 按 环境（测试、生产） 按 资源类型（读接口、写接口、回调接口）   限流指标设计   QPS：每秒多少次 QPM &#x2F; QPH：每分钟&#x2F;每小时多少次 Daily Quota：每日调用总量 Concurrency：并发请求数 Bandwidth &#x2F; Payload：流量或包体大小限制   分层限流   网关层限流 应用层限流 下游资源层限流（DB、缓存、第三方依赖） 特殊接口单独限流   算法选择   工程里最常见：令牌桶 精确统计常见：滑动窗口 削峰更明显：漏桶 简单粗暴但误差大：固定窗口   技术实现...</div></div></div></a><a class="pagination-related" href="/blog/2024/02/01/%E6%AD%BB%E9%94%81%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3%E6%8C%87%E5%8D%97/" title="死锁问题解决指南"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">死锁问题解决指南</div></div><div class="info-2"><div class="info-item-1">一、死锁的四个必要条件（打破任一即可预防）   条件 说明    互斥 资源同一时刻只能被一个线程占用   占有并等待 线程持有资源同时等待其他资源   不可抢占 资源不能被强制剥夺   循环等待 线程间形成环形等待链    二、预防死锁（开发阶段）1. 固定加锁顺序（打破循环等待）12345678910111213// ❌ 危险：线程A锁1→锁2，线程B锁2→锁1synchronized (lockA) &#123;synchronized (lockB) &#123; ... &#125;&#125;// ✅ 安全：所有线程统一按 lockA → lockB 顺序加锁// 可用锁对象的 System.identityHashCode() 决定顺序int hashA = System.identityHashCode(lockA);int hashB = System.identityHashCode(lockB);Object first  = hashA &lt; hashB ? lockA : lockB;Object second = hashA &lt; hashB ...</div></div></div></a></nav><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/blog/blog/images/avatar.gif" onerror="this.onerror=null;this.src='/blog/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">刘华强</div><div class="author-info-description"></div><div class="site-data"><a href="/blog/archives/"><div class="headline">文章</div><div class="length-num">23</div></a><a href="/blog/tags/"><div class="headline">标签</div><div class="length-num">52</div></a><a href="/blog/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/anlen123"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/anlen123" target="_blank" title=""><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:1761512493@qq.com" target="_blank" title=""><i class="fas fa-envelope"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E4%BB%80%E4%B9%88%E6%98%AF-Mafka%EF%BC%9F"><span class="toc-number">1.</span> <span class="toc-text">二、什么是 Mafka？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E6%A0%B8%E5%BF%83%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF%EF%BC%889-%E5%A4%A7%E5%9C%BA%E6%99%AF%EF%BC%89"><span class="toc-number">2.</span> <span class="toc-text">三、核心使用场景（9 大场景）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E6%A0%B8%E5%BF%83%E5%8A%9F%E8%83%BD%E8%AF%A6%E8%A7%A3"><span class="toc-number">3.</span> <span class="toc-text">四、核心功能详解</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81Mafka-vs-Kafka%EF%BC%9A%E4%BC%98%E5%8A%BF%E5%AF%B9%E6%AF%94"><span class="toc-number">4.</span> <span class="toc-text">五、Mafka vs Kafka：优势对比</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%A0%B8%E5%BF%83%E4%BC%98%E5%8A%BF%E6%80%BB%E7%BB%93"><span class="toc-number">4.1.</span> <span class="toc-text">核心优势总结</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/24/StringBuilder%E5%BA%95%E5%B1%82%E6%BA%90%E7%A0%81%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/" title="StringBuilder底层源码原理详解——从源码到面试">StringBuilder底层源码原理详解——从源码到面试</a><time datetime="2026-07-24T02:00:00.000Z" title="发表于 2026-07-24 10:00:00">2026-07-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/24/Skill%E5%91%BD%E4%B8%AD%E7%8E%87%E4%BF%9D%E8%AF%81%E7%AD%96%E7%95%A5/" title="Skill 命中率保证策略">Skill 命中率保证策略</a><time datetime="2026-07-23T16:00:00.000Z" title="发表于 2026-07-24 00:00:00">2026-07-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/24/Spring-AOP%E4%B8%8E%E4%BA%8B%E5%8A%A1%E5%A4%B1%E6%95%88%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/" title="Spring AOP 与事务失效原理详解">Spring AOP 与事务失效原理详解</a><time datetime="2026-07-23T16:00:00.000Z" title="发表于 2026-07-24 00:00:00">2026-07-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/23/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E5%9F%BA%E5%9B%A0%E6%B3%95%E8%AF%A6%E8%A7%A3/" title="分库分表基因法详解——从原理到实战">分库分表基因法详解——从原理到实战</a><time datetime="2026-07-23T07:00:00.000Z" title="发表于 2026-07-23 15:00:00">2026-07-23</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/17/Redis-Hash%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/" title="Redis Hash 扩容机制详解（1000 万数据场景）">Redis Hash 扩容机制详解（1000 万数据场景）</a><time datetime="2026-07-17T02:00:00.000Z" title="发表于 2026-07-17 10:00:00">2026-07-17</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By 刘华强</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.2</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.5</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/blog/js/utils.js?v=5.5.5"></script><script src="/blog/js/main.js?v=5.5.5"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/blog/js/search/local-search.js?v=5.5.5"></script></div></div></body></html>

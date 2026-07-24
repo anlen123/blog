@@ -1,0 +1,291 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Redis Hash 扩容机制详解（1000 万数据场景） | 刘华强的笔记</title><meta name="author" content="刘华强"><meta name="copyright" content="刘华强"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Redis Hash 扩容机制详解（1000 万数据场景）Redis Hash 底层用字典（dict） 存储，1000 万条数据要经历 20 多次扩容。如果一次性搬完，主线程会卡住数秒——这对 Redis 单线程模型来说是致命的。Redis 的解决方案是渐进式 rehash。 一、底层数据结构123456789101112typedef struct dict &#123;    dictht h">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis Hash 扩容机制详解（1000 万数据场景）">
+<meta property="og:url" content="https://anlen123.github.io/blog/2026/07/17/Redis-Hash%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/index.html">
+<meta property="og:site_name" content="刘华强的笔记">
+<meta property="og:description" content="Redis Hash 扩容机制详解（1000 万数据场景）Redis Hash 底层用字典（dict） 存储，1000 万条数据要经历 20 多次扩容。如果一次性搬完，主线程会卡住数秒——这对 Redis 单线程模型来说是致命的。Redis 的解决方案是渐进式 rehash。 一、底层数据结构123456789101112typedef struct dict &#123;    dictht h">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://anlen123.github.io/blog/blog/images/avatar.gif">
+<meta property="article:published_time" content="2026-07-17T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-07-17T10:50:59.470Z">
+<meta property="article:author" content="刘华强">
+<meta property="article:tag" content="Redis">
+<meta property="article:tag" content="性能优化">
+<meta property="article:tag" content="数据结构">
+<meta property="article:tag" content="面试">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://anlen123.github.io/blog/blog/images/avatar.gif"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Redis Hash 扩容机制详解（1000 万数据场景）",
+  "url": "https://anlen123.github.io/blog/2026/07/17/Redis-Hash%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/",
+  "image": "https://anlen123.github.io/blog/blog/images/avatar.gif",
+  "datePublished": "2026-07-17T02:00:00.000Z",
+  "dateModified": "2026-07-17T10:50:59.470Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "刘华强",
+      "url": "https://anlen123.github.io/blog"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/blog/blog/images/favicon-16x16-next.png"><link rel="canonical" href="https://anlen123.github.io/blog/2026/07/17/Redis-Hash%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/blog/css/index.css?v=5.5.5"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/blog/',
+  algolia: undefined,
+  localSearch: {"path":"/blog/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Redis Hash 扩容机制详解（1000 万数据场景）',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/blog/css/animal-island-theme.css"><meta name="generator" content="Hexo 8.1.2"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/blog/blog/images/avatar.gif" onerror="this.onerror=null;this.src='/blog/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/blog/archives/"><div class="headline">文章</div><div class="length-num">23</div></a><a href="/blog/tags/"><div class="headline">标签</div><div class="length-num">52</div></a><a href="/blog/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/blog/"><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/blog/about/"><span> 关于</span></a></div><div class="menus_item"><a class="site-page" href="/blog/travel-plan/"><span> 出行攻略</span></a></div><div class="menus_item"><a class="site-page" href="/blog/categories/"><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/blog/archives/"><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/blog/tags/"><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/blog/resume/"><span> 简历</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/blog/"><span class="site-name">刘华强的笔记</span></a><a class="nav-page-title" href="/blog/"><span class="site-name">Redis Hash 扩容机制详解（1000 万数据场景）</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/blog/"><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/blog/about/"><span> 关于</span></a></div><div class="menus_item"><a class="site-page" href="/blog/travel-plan/"><span> 出行攻略</span></a></div><div class="menus_item"><a class="site-page" href="/blog/categories/"><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/blog/archives/"><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/blog/tags/"><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/blog/resume/"><span> 简历</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Redis Hash 扩容机制详解（1000 万数据场景）</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-07-17T02:00:00.000Z" title="发表于 2026-07-17 10:00:00">2026-07-17</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-07-17T10:50:59.470Z" title="更新于 2026-07-17 18:50:59">2026-07-17</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/blog/categories/%E5%90%8E%E7%AB%AF/">后端</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h1 id="Redis-Hash-扩容机制详解（1000-万数据场景）"><a href="#Redis-Hash-扩容机制详解（1000-万数据场景）" class="headerlink" title="Redis Hash 扩容机制详解（1000 万数据场景）"></a>Redis Hash 扩容机制详解（1000 万数据场景）</h1><p>Redis Hash 底层用<strong>字典（dict）</strong> 存储，1000 万条数据要经历 20 多次扩容。如果一次性搬完，主线程会卡住数秒——这对 Redis 单线程模型来说是致命的。Redis 的解决方案是<strong>渐进式 rehash</strong>。</p>
+<h2 id="一、底层数据结构"><a href="#一、底层数据结构" class="headerlink" title="一、底层数据结构"></a>一、底层数据结构</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dict</span> &#123;</span></span><br><span class="line">    dictht ht[<span class="number">2</span>];        <span class="comment">// 两个 hash table，用于渐进式 rehash</span></span><br><span class="line">    <span class="type">long</span> rehashidx;      <span class="comment">// rehash 进度，-1 表示未进行 rehash</span></span><br><span class="line">    <span class="type">int</span> iterators;       <span class="comment">// 安全迭代器计数</span></span><br><span class="line">&#125; dict;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dictht</span> &#123;</span></span><br><span class="line">    dictEntry **table;   <span class="comment">// bucket 数组</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> size;  <span class="comment">// bucket 数量（始终为 2^n）</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> sizemask;  <span class="comment">// size - 1，用于取模</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> used;  <span class="comment">// 已存储的键值对数量</span></span><br><span class="line">&#125; dictht;</span><br></pre></td></tr></table></figure>
+
+<p><strong>关键设计</strong>：<code>ht[0]</code> 和 <code>ht[1]</code> 两个 table 并存。平时只用 <code>ht[0]</code>，rehash 时 <code>ht[1]</code> 是扩容后的新 table，<code>ht[0]</code> 中的数据逐步迁移过去。</p>
+<h2 id="二、扩容触发条件"><a href="#二、扩容触发条件" class="headerlink" title="二、扩容触发条件"></a>二、扩容触发条件</h2><p>扩容有两个判断条件（且需 <code>dict_can_resize = 1</code>）：</p>
+<table>
+<thead>
+<tr>
+<th>条件</th>
+<th>规则</th>
+<th>设计意图</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>负载因子 ≥ 1</strong></td>
+<td><code>used / size &gt;= 1</code>，且无 BGSAVE &#x2F; BGREWRITEAOF</td>
+<td>避免写时复制导致内存翻倍</td>
+</tr>
+<tr>
+<td><strong>负载因子 &gt; 5</strong></td>
+<td><code>used / size &gt; dict_force_resize_ratio = 5</code></td>
+<td>情况紧急，强制执行，无视 BGSAVE</td>
+</tr>
+</tbody></table>
+<h3 id="1000-万数据要扩容多少次？"><a href="#1000-万数据要扩容多少次？" class="headerlink" title="1000 万数据要扩容多少次？"></a>1000 万数据要扩容多少次？</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">初始 size = 4（最小）</span><br><span class="line">每次扩容 size × 2</span><br><span class="line"></span><br><span class="line">扩容路径：</span><br><span class="line">  4 → 8 → 16 → 32 → 64 → 128 → 256 → 512 → 1K → 2K → 4K</span><br><span class="line">  → 8K → 16K → 32K → 64K → 128K → 256K → 512K → 1M</span><br><span class="line">  → 2M → 4M → 8M → 16M = 2^24 = 16,777,216</span><br><span class="line"></span><br><span class="line">最终 size 约 1677 万 bucket，整个过程中发生约 22 次扩容。</span><br></pre></td></tr></table></figure>
+
+<h2 id="三、核心机制：渐进式-Rehash"><a href="#三、核心机制：渐进式-Rehash" class="headerlink" title="三、核心机制：渐进式 Rehash"></a>三、核心机制：渐进式 Rehash</h2><p>Redis <strong>绝对不会</strong>一次性迁移所有数据，而是”化整为零”。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">┌─────────────────┐      ┌─────────────────┐</span><br><span class="line">│     ht[0]       │      │     ht[1]       │</span><br><span class="line">│   size = 8      │ ───► │   size = 16     │</span><br><span class="line">│   used = 8      │      │   used = 0      │</span><br><span class="line">└─────────────────┘      └─────────────────┘</span><br><span class="line">       ↑                        ↑</span><br><span class="line">    老 table               新 table（扩容后）</span><br><span class="line">    </span><br><span class="line">rehashidx: 0 → 1 → 2 → ... → 7 → -1</span><br><span class="line">            ↑                      ↑</span><br><span class="line">         正在搬第0号bucket       全部搬完，ht[1] 变成新的 ht[0]</span><br></pre></td></tr></table></figure>
+
+<h3 id="三个触发点驱动迁移"><a href="#三个触发点驱动迁移" class="headerlink" title="三个触发点驱动迁移"></a>三个触发点驱动迁移</h3><p><strong>1. 每次增删改查触发（<code>_dictRehashStep</code>）</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 每次 dictFind / dictAdd / dictDelete 只迁移 1 个非空 bucket</span></span><br><span class="line"><span class="type">static</span> <span class="type">void</span> _dictRehashStep(dict *d) &#123;</span><br><span class="line">    <span class="keyword">if</span> (d-&gt;iterators == <span class="number">0</span>) dictRehash(d, <span class="number">1</span>);  <span class="comment">// 只搬 1 步</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>注意：”1 步”是 1 个 bucket，但这个 bucket 下的所有 entry <strong>一次性全部迁移</strong></li>
+<li>链地址法中一个 bucket 可能挂了很多条记录</li>
+</ul>
+<p><strong>2. 定时器触发（<code>databasesCron</code>）</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// serverCron 每 100ms 执行一次</span></span><br><span class="line"><span class="comment">// 每次迁移持续 1ms，到时间就停</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">dictRehashMicroseconds</span><span class="params">(dict *d, <span class="number">1000</span>)</span>;  <span class="comment">// 1ms = 1000 微秒</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>3. 主动查询时加速</strong></p>
+<p>客户端执行 <code>INFO</code> 等命令时，Redis 趁机多搬一些。</p>
+<h3 id="Rehash-期间的操作路由"><a href="#Rehash-期间的操作路由" class="headerlink" title="Rehash 期间的操作路由"></a>Rehash 期间的操作路由</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">操作         │ 去哪找？</span><br><span class="line">─────────────┼────────────────────────────────────</span><br><span class="line">查询 (HGET)   │ 先查 ht[0]（rehashidx 之前的部分已搬空）</span><br><span class="line">             │ 再查 ht[1]（rehashidx 之后还没搬的还在 ht[0]）</span><br><span class="line">新增 (HSET)   │ 直接写入 ht[1]（新的都往新表写）</span><br><span class="line">删除 (HDEL)   │ 同时查 ht[0] 和 ht[1]，两边都删</span><br><span class="line">修改 (HINCR)  │ 先查 ht[0] 再查 ht[1]，找到就改</span><br></pre></td></tr></table></figure>
+
+<h2 id="四、1000-万数据的扩容耗时估算"><a href="#四、1000-万数据的扩容耗时估算" class="headerlink" title="四、1000 万数据的扩容耗时估算"></a>四、1000 万数据的扩容耗时估算</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">假设最终 size = 16,777,216 个 bucket</span><br><span class="line">每个 bucket 平均 0.6 条记录（1000w / 1677w）</span><br><span class="line"></span><br><span class="line">最坏情况（纯读写，无定时器加速）：</span><br><span class="line">  需要 1677 万个请求才能完成 rehash</span><br><span class="line">  → 活跃的系统几小时内完成</span><br><span class="line"></span><br><span class="line">实际场景（定时器 + 大量请求混合）：</span><br><span class="line">  定时器 1ms 每次能搬几百个 bucket</span><br><span class="line">  加上正常请求触发</span><br><span class="line">  → 通常在数分钟内完成</span><br><span class="line"></span><br><span class="line">关键洞察：</span><br><span class="line">  整个过程对单次请求的阻塞 = 1 个 bucket 的迁移时间</span><br><span class="line">  不会出现&quot;卡住几秒不动&quot;的情况</span><br><span class="line">  这就是渐进式 rehash 的意义所在</span><br></pre></td></tr></table></figure>
+
+<h2 id="五、缩容机制"><a href="#五、缩容机制" class="headerlink" title="五、缩容机制"></a>五、缩容机制</h2><p>当大量删除数据后，触发反向 rehash——缩容：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">触发条件：used / size &lt; 0.1（负载因子 &lt; 0.1）</span><br><span class="line"></span><br><span class="line">示例：</span><br><span class="line">  size = 1677 万，used = 10 万</span><br><span class="line">  → 负载因子 = 0.006 &lt; 0.1</span><br><span class="line">  → 缩容到 size = 2^17 = 131,072（能装下 10 万的最小 2^n）</span><br><span class="line">  → 数据从 ht[0] 迁移到 ht[1]（缩容后的新 table）</span><br></pre></td></tr></table></figure>
+
+<p><strong>注意</strong>：如果业务先大量删除后大量写入，会触发”缩容→扩容”的来回折腾，浪费 CPU。设计数据结构时要考虑数据量的稳定性。</p>
+<h2 id="六、优化建议（对应-1000-万级-Hash）"><a href="#六、优化建议（对应-1000-万级-Hash）" class="headerlink" title="六、优化建议（对应 1000 万级 Hash）"></a>六、优化建议（对应 1000 万级 Hash）</h2><table>
+<thead>
+<tr>
+<th>建议</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>避免大量删除</strong></td>
+<td>删到不足 10% 会触发缩容，之后再加回来又扩容——反复 rehash 浪费 CPU</td>
+</tr>
+<tr>
+<td><strong>管道写入</strong></td>
+<td>批量写入用 PIPELINE，加速写入的同时也加速 rehash</td>
+</tr>
+<tr>
+<td><strong>配置保护</strong></td>
+<td><code>activerehashing yes</code>（默认开启），定时器主动加速 rehash</td>
+</tr>
+<tr>
+<td><strong>分片思想（推荐）</strong></td>
+<td>1000 万的大 Hash，拆成 100 个小 Hash，各存 10 万</td>
+</tr>
+</tbody></table>
+<h3 id="分片方案（最佳实践）"><a href="#分片方案（最佳实践）" class="headerlink" title="分片方案（最佳实践）"></a>分片方案（最佳实践）</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 不推荐：一个大 key</span></span><br><span class="line">HSET <span class="built_in">users</span> uid:10001 name <span class="string">&quot;张三&quot;</span> age 25</span><br><span class="line">HSET <span class="built_in">users</span> uid:10002 name <span class="string">&quot;李四&quot;</span> age 30</span><br><span class="line"><span class="comment"># 1000 万条全挤在一个 Hash 里</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 推荐：按业务维度分片</span></span><br><span class="line">HSET user:&#123;uid % 100&#125; uid:10001 name <span class="string">&quot;张三&quot;</span> age 25</span><br><span class="line">HSET user:&#123;uid % 100&#125; uid:10002 name <span class="string">&quot;李四&quot;</span> age 30</span><br><span class="line"><span class="comment"># 每个 Hash 只有 10 万条，dict 更小，rehash 更快</span></span><br></pre></td></tr></table></figure>
+
+<p>分片的好处：</p>
+<ul>
+<li>单个 Hash 的 dict 更小，rehash 成本更低</li>
+<li>避免了单个大 key 成为热点</li>
+<li>删除一个分片的数据不会影响其他分片</li>
+<li>Redis Cluster 下可以分散到不同节点</li>
+</ul>
+<h2 id="七、扩容过程图解"><a href="#七、扩容过程图解" class="headerlink" title="七、扩容过程图解"></a>七、扩容过程图解</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">时间 ──────────────────────────────────────────────►</span><br><span class="line"></span><br><span class="line">ht[0] size=8         ht[1] size=16 已分配</span><br><span class="line">████████ rehashidx=0 ░░░░░░░░░░░░░░  ← 刚触发扩容，开始搬 bucket 0</span><br><span class="line"></span><br><span class="line">████ rehashidx=2 ░░  ░░░░░░████░░░░  ← 进行中... 每步搬 1 个 bucket</span><br><span class="line"></span><br><span class="line">                    rehashidx=-1     ← 完成！ht[1] 变成新的 ht[0]</span><br><span class="line">░░░░░░░░░░░░░░░░░░  ████████████████</span><br><span class="line">old ht[0] 释放      新 ht[0]（原 ht[1]）</span><br></pre></td></tr></table></figure>
+
+<h2 id="八、与-Java-HashMap-的对比"><a href="#八、与-Java-HashMap-的对比" class="headerlink" title="八、与 Java HashMap 的对比"></a>八、与 Java HashMap 的对比</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Redis dict</th>
+<th>Java HashMap</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>扩容方式</td>
+<td><strong>渐进式</strong> rehash，分步迁移</td>
+<td><strong>一次性</strong> resize，全部 rehash</td>
+</tr>
+<tr>
+<td>阻塞影响</td>
+<td>每次请求只阻塞 1 个 bucket</td>
+<td>扩容瞬间 STW（尤其 JDK 7 头插法死循环）</td>
+</tr>
+<tr>
+<td>并发</td>
+<td>单线程，天然无并发问题</td>
+<td>JDK 7 有死循环 bug，JDK 8 改用尾插法</td>
+</tr>
+<tr>
+<td>缩容</td>
+<td>支持（负载因子 &lt; 0.1）</td>
+<td><strong>不支持</strong>（只扩容不缩容）</td>
+</tr>
+<tr>
+<td>bucket 数</td>
+<td>始终 2^n</td>
+<td>始终 2^n</td>
+</tr>
+</tbody></table>
+<h2 id="九、总结"><a href="#九、总结" class="headerlink" title="九、总结"></a>九、总结</h2><p>Redis Hash 扩容的核心设计哲学是<strong>化整为零</strong>：</p>
+<ol>
+<li><strong>两个 hash table 并存</strong>（<code>ht[0]</code> + <code>ht[1]</code>），数据逐步从旧表迁移到新表</li>
+<li><strong>每次操作只搬一点点</strong>（1 个 bucket），绝不阻塞主线程</li>
+<li><strong>三个触发点</strong>：请求触发 + 定时器触发 + 主动查询触发，多管齐下</li>
+<li><strong>1000 万数据扩容</strong>：全过程中单次请求的额外开销只是一个 bucket 的迁移，用户无感知</li>
+</ol>
+<p>对于大 Hash，<strong>业务分片</strong>是最佳实践——将一个大 key 拆成多个小 key，既降低了单次 rehash 的规模，又避免了单个大 key 成为热点或慢操作源。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://anlen123.github.io/blog">刘华强</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://anlen123.github.io/blog/2026/07/17/Redis-Hash%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/">https://anlen123.github.io/blog/2026/07/17/Redis-Hash%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://anlen123.github.io/blog" target="_blank">刘华强的笔记</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/blog/tags/%E9%9D%A2%E8%AF%95/">面试</a><a class="post-meta__tags" href="/blog/tags/Redis/">Redis</a><a class="post-meta__tags" href="/blog/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">数据结构</a><a class="post-meta__tags" href="/blog/tags/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/">性能优化</a></div><div class="post-share"><div class="social-share" data-image="/blog/blog/images/avatar.gif" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/blog/2026/07/17/MySQL%E9%95%BF%E4%BA%8B%E5%8A%A1%E5%AF%B9MVCC%E7%9A%84%E5%BD%B1%E5%93%8D/" title="MySQL 长事务对 MVCC 的影响"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">MySQL 长事务对 MVCC 的影响</div></div><div class="info-2"><div class="info-item-1">MySQL 长事务对 MVCC 的影响这是面试高频题，也是线上故障的常见根源。要理解长事务的危害，必须先清楚 MVCC 的几个核心组件。 一、MVCC 核心组件速览InnoDB 的 MVCC（多版本并发控制） 通过维护同一行数据的多个版本，实现读写不阻塞。关键组件：    组件 作用    Undo Log（回滚日志） 记录行数据的旧版本，用于事务回滚和构造一致性读的快照   Read View（读视图） 事务启动时记录当前活跃事务列表，决定哪些数据版本对本次查询可见   Purge Thread（清理线程） 异步清除不再被任何事务需要的旧版本数据   它们的关系： 12345678事务开始 → 生成 Read View（记录&quot;此刻谁还在跑&quot;）    ↓其他事务修改数据 → 写入 Undo Log（保留旧版本）    ↓Purge Thread 定期扫描 → 找到&quot;没人还需要&quot;的旧版本 → 物理删除    ↓判断标准：这个 Undo Log 的 trx_id 比最老的 Read View 还老吗？           是 → 可以删    ...</div></div></div></a><a class="pagination-related" href="/blog/2026/07/01/%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB%E6%80%A7%E5%8E%9F%E7%90%86/" title="事务隔离性的原理"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">事务隔离性的原理</div></div><div class="info-2"><div class="info-item-1">事务隔离性的原理隔离性（Isolation）是 ACID 中的 I，核心问题是：多个事务同时读写同一数据时，如何让它们互不干扰？ 一、并发写 — 必须串行化两个事务不能同时写同一行，否则数据会损坏。这是通过 锁 来保证的。 行级锁（Row Lock）1234567事务 T1: UPDATE account SET balance = balance - 100 WHERE id = 1;         ↓ 对 id=1 这行加 X 锁（排他锁）事务 T2: UPDATE account SET balance = balance - 50  WHERE id = 1;         ↓ 也要对 id=1 加 X 锁 → 阻塞等待 T1 释放T1 提交 → 释放 X 锁 → T2 获得锁 → 继续执行  关键：写锁在事务提交后才释放（两阶段锁协议），这是隔离性的基础保证。 二、并发的核心矛盾：写 vs 读   场景 冲突程度 需要什么    写 vs 写 必须互斥 锁（上面讲了）   写 vs 读 不必互斥，但需要协调 多版本并发控制（MVCC）   三、MVCC — 现代数据...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/blog/2026/07/24/StringBuilder%E5%BA%95%E5%B1%82%E6%BA%90%E7%A0%81%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/" title="StringBuilder底层源码原理详解——从源码到面试"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-24</div><div class="info-item-2">StringBuilder底层源码原理详解——从源码到面试</div></div><div class="info-2"><div class="info-item-1">StringBuilder 底层源码原理详解——从源码到面试StringBuilder 是 Java 中最常用的字符串构建工具。很多人每天都在用 new StringBuilder().append(...)，但它的底层到底是怎么工作的？为什么它比 + 拼接快？容量扩容机制是怎样的？本文基于 JDK 8 源码，逐层拆解 StringBuilder 的核心实现原理。  一、类继承体系先看类图（简化）： 123AbstractStringBuilder (package-private)    ├── StringBuilder (public, 非线程安全)    └── StringBuffer  (public, 线程安全)  核心设计思想：StringBuilder 和 StringBuffer 的所有核心逻辑都在父类 AbstractStringBuilder 中。两个子类只是在外层加了同步控制（StringBuffer 用 synchronized），真正的 append&#x2F;insert&#x2F;delete 实现在父类里。 1234// StringBuild...</div></div></div></a><a class="pagination-related" href="/blog/2026/07/17/MySQL%E9%95%BF%E4%BA%8B%E5%8A%A1%E5%AF%B9MVCC%E7%9A%84%E5%BD%B1%E5%93%8D/" title="MySQL 长事务对 MVCC 的影响"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-17</div><div class="info-item-2">MySQL 长事务对 MVCC 的影响</div></div><div class="info-2"><div class="info-item-1">MySQL 长事务对 MVCC 的影响这是面试高频题，也是线上故障的常见根源。要理解长事务的危害，必须先清楚 MVCC 的几个核心组件。 一、MVCC 核心组件速览InnoDB 的 MVCC（多版本并发控制） 通过维护同一行数据的多个版本，实现读写不阻塞。关键组件：    组件 作用    Undo Log（回滚日志） 记录行数据的旧版本，用于事务回滚和构造一致性读的快照   Read View（读视图） 事务启动时记录当前活跃事务列表，决定哪些数据版本对本次查询可见   Purge Thread（清理线程） 异步清除不再被任何事务需要的旧版本数据   它们的关系： 12345678事务开始 → 生成 Read View（记录&quot;此刻谁还在跑&quot;）    ↓其他事务修改数据 → 写入 Undo Log（保留旧版本）    ↓Purge Thread 定期扫描 → 找到&quot;没人还需要&quot;的旧版本 → 物理删除    ↓判断标准：这个 Undo Log 的 trx_id 比最老的 Read View 还老吗？           是 → 可以删    ...</div></div></div></a><a class="pagination-related" href="/blog/2024/05/20/SQL%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98/" title="SQL 优化实战 — 从排查到根治的完整指南"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-05-20</div><div class="info-item-2">SQL 优化实战 — 从排查到根治的完整指南</div></div><div class="info-2"><div class="info-item-1">1. 发现问题慢查询日志123456-- 开启慢查询日志SET GLOBAL slow_query_log = &#x27;ON&#x27;;SET GLOBAL long_query_time = 1;  -- 超过1秒记录-- 查看慢查询配置SHOW VARIABLES LIKE &#x27;slow_query%&#x27;;SHOW VARIABLES LIKE &#x27;long_query_time&#x27;;  实时监控123456-- 查看当前运行的查询SHOW PROCESSLIST;SHOW FULL PROCESSLIST;-- 查看状态变量SHOW STATUS LIKE &#x27;Threads_running&#x27;;SHOW STATUS LIKE &#x27;Slow_queries&#x27;;   2. 分析 SQL — EXPLAIN1EXPLAIN SELECT * FROM orders WHERE user_id = 100;  关键字段解读   字段 含义 关注点    id 执行顺序 数字越大越先执行   select_t...</div></div></div></a><a class="pagination-related" href="/blog/2026/07/01/Java%E5%9B%9B%E7%A7%8D%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B%E8%AF%A6%E8%A7%A3/" title="Java 四种引用类型详解"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-01</div><div class="info-item-2">Java 四种引用类型详解</div></div><div class="info-2"><div class="info-item-1">Java 提供了四种引用类型来控制对象与 GC 之间的关系，核心问题是：一个对象被引用着，GC 能不能回收它？什么时候回收？    一、四种引用对比   引用类型 GC 回收时机 用途    强引用 绝不回收 正常编码，99% 的场景   软引用 内存不足时回收 缓存（如图片缓存）   弱引用 下次 GC 就回收 避免内存泄漏（如 WeakHashMap）   虚引用 任何时候，仅用于跟踪 管理堆外内存（如 DirectByteBuffer）   回收强度降序：强 → 软 → 弱 → 虚  二、强引用（Strong Reference）最普通的引用，Java 默认就是强引用： 1Object obj = new Object();  // obj 是强引用  规则：只要强引用链还在，GC 永远不会回收这个对象，哪怕 OOM。 12Object obj = new Object();obj = null;  // 强引用断了 → 下次 GC 可回收   三、软引用（Soft Reference）比强引用弱一级。内存够时不回收，内存不够时 GC 会回收。 12345678910111...</div></div></div></a><a class="pagination-related" href="/blog/2026/07/23/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E5%9F%BA%E5%9B%A0%E6%B3%95%E8%AF%A6%E8%A7%A3/" title="分库分表基因法详解——从原理到实战"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-23</div><div class="info-item-2">分库分表基因法详解——从原理到实战</div></div><div class="info-2"><div class="info-item-1">分库分表基因法详解——从原理到实战基因法是分库分表架构中一种经典的路由策略。它的核心思想极其巧妙：在数据写入时，将分片键的信息”编码”进业务 ID 中，使得后续通过业务 ID 查询时，无需跨库就能直接定位目标分片。 本质是”信息前置”——把路由所需的信息提前写入数据本身。  一、问题背景：为什么要用基因法？1.1 一个具体的场景假设电商系统分 32 个库，核心表如下：    表名 说明 分片键 分片算法    t_order 订单主表 user_id user_id % 32   t_order_item 订单明细表 user_id user_id % 32   两张表都按 user_id 分片，落在同一个库中。这样 “根据 user_id 查订单 + 订单明细” 非常高效——只需访问一个分片。 但业务上还有另一个高频查询： 123-- 用户在订单列表页点击某条订单，查看详情SELECT * FROM t_order WHERE order_id = 1892736451;SELECT * FROM t_order_item WHERE order_id = 1892736451...</div></div></div></a><a class="pagination-related" href="/blog/2024/01/01/%E9%9D%A2%E8%AF%95%E8%87%AA%E6%88%91%E4%BB%8B%E7%BB%8D/" title="面试自我介绍"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-01-01</div><div class="info-item-2">面试自我介绍</div></div><div class="info-2"><div class="info-item-1">面试官您好，我叫刘华强，有 5 年 Java 后端开发经验，目前主要在美团做供应链方向的后端研发。 我做过库存、采购、配送、开放接口、代仓 WMS、ERP 对接等业务，对供应链系统的核心链路比较熟悉。前两年主要负责库存模块建设，完善了出入库、调拨、盘点、批次调整等库存业务闭环，同时也做了库存预警、月结控制、数据归档等工作，保障库存数据准确性 最近几年我主要负责供应链开放对接方向，更多是在做平台化和标准化建设,供应链开放平台现在承载 60 多个开放接口；也主导重构了WMS对接平台，通过“标准层 + 差异层”的架构，把公共能力下沉，让新WMS系统接入更加快速高效。这个平台最终支撑了 35 家代仓上线，也明显降低了后续接入和维护成本。 另外，我还做过三方 ERP 主动集成平台，支持了5套ERP系统、20多个业务通道稳定运行。过程中我比较关注接口稳定性和数据一致性，比如幂等, 锁,轮询兜底这些机制都有实际落地经验。 我的特点是主人翁意识比较强，能够从业务理解、方案设计、开发交付到上线运维完整负责，能够快速理解复杂业务，也比较擅长把复杂对接场景抽象成可复用的平台能力。 </div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/blog/blog/images/avatar.gif" onerror="this.onerror=null;this.src='/blog/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">刘华强</div><div class="author-info-description"></div><div class="site-data"><a href="/blog/archives/"><div class="headline">文章</div><div class="length-num">23</div></a><a href="/blog/tags/"><div class="headline">标签</div><div class="length-num">52</div></a><a href="/blog/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/anlen123"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/anlen123" target="_blank" title=""><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:1761512493@qq.com" target="_blank" title=""><i class="fas fa-envelope"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Redis-Hash-%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3%EF%BC%881000-%E4%B8%87%E6%95%B0%E6%8D%AE%E5%9C%BA%E6%99%AF%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">Redis Hash 扩容机制详解（1000 万数据场景）</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E5%BA%95%E5%B1%82%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="toc-number">1.1.</span> <span class="toc-text">一、底层数据结构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E6%89%A9%E5%AE%B9%E8%A7%A6%E5%8F%91%E6%9D%A1%E4%BB%B6"><span class="toc-number">1.2.</span> <span class="toc-text">二、扩容触发条件</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1000-%E4%B8%87%E6%95%B0%E6%8D%AE%E8%A6%81%E6%89%A9%E5%AE%B9%E5%A4%9A%E5%B0%91%E6%AC%A1%EF%BC%9F"><span class="toc-number">1.2.1.</span> <span class="toc-text">1000 万数据要扩容多少次？</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E6%A0%B8%E5%BF%83%E6%9C%BA%E5%88%B6%EF%BC%9A%E6%B8%90%E8%BF%9B%E5%BC%8F-Rehash"><span class="toc-number">1.3.</span> <span class="toc-text">三、核心机制：渐进式 Rehash</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%89%E4%B8%AA%E8%A7%A6%E5%8F%91%E7%82%B9%E9%A9%B1%E5%8A%A8%E8%BF%81%E7%A7%BB"><span class="toc-number">1.3.1.</span> <span class="toc-text">三个触发点驱动迁移</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Rehash-%E6%9C%9F%E9%97%B4%E7%9A%84%E6%93%8D%E4%BD%9C%E8%B7%AF%E7%94%B1"><span class="toc-number">1.3.2.</span> <span class="toc-text">Rehash 期间的操作路由</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%811000-%E4%B8%87%E6%95%B0%E6%8D%AE%E7%9A%84%E6%89%A9%E5%AE%B9%E8%80%97%E6%97%B6%E4%BC%B0%E7%AE%97"><span class="toc-number">1.4.</span> <span class="toc-text">四、1000 万数据的扩容耗时估算</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E7%BC%A9%E5%AE%B9%E6%9C%BA%E5%88%B6"><span class="toc-number">1.5.</span> <span class="toc-text">五、缩容机制</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E4%BC%98%E5%8C%96%E5%BB%BA%E8%AE%AE%EF%BC%88%E5%AF%B9%E5%BA%94-1000-%E4%B8%87%E7%BA%A7-Hash%EF%BC%89"><span class="toc-number">1.6.</span> <span class="toc-text">六、优化建议（对应 1000 万级 Hash）</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%86%E7%89%87%E6%96%B9%E6%A1%88%EF%BC%88%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5%EF%BC%89"><span class="toc-number">1.6.1.</span> <span class="toc-text">分片方案（最佳实践）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%83%E3%80%81%E6%89%A9%E5%AE%B9%E8%BF%87%E7%A8%8B%E5%9B%BE%E8%A7%A3"><span class="toc-number">1.7.</span> <span class="toc-text">七、扩容过程图解</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AB%E3%80%81%E4%B8%8E-Java-HashMap-%E7%9A%84%E5%AF%B9%E6%AF%94"><span class="toc-number">1.8.</span> <span class="toc-text">八、与 Java HashMap 的对比</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B9%9D%E3%80%81%E6%80%BB%E7%BB%93"><span class="toc-number">1.9.</span> <span class="toc-text">九、总结</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/24/StringBuilder%E5%BA%95%E5%B1%82%E6%BA%90%E7%A0%81%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/" title="StringBuilder底层源码原理详解——从源码到面试">StringBuilder底层源码原理详解——从源码到面试</a><time datetime="2026-07-24T02:00:00.000Z" title="发表于 2026-07-24 10:00:00">2026-07-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/24/Skill%E5%91%BD%E4%B8%AD%E7%8E%87%E4%BF%9D%E8%AF%81%E7%AD%96%E7%95%A5/" title="Skill 命中率保证策略">Skill 命中率保证策略</a><time datetime="2026-07-23T16:00:00.000Z" title="发表于 2026-07-24 00:00:00">2026-07-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/24/Spring-AOP%E4%B8%8E%E4%BA%8B%E5%8A%A1%E5%A4%B1%E6%95%88%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/" title="Spring AOP 与事务失效原理详解">Spring AOP 与事务失效原理详解</a><time datetime="2026-07-23T16:00:00.000Z" title="发表于 2026-07-24 00:00:00">2026-07-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/23/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E5%9F%BA%E5%9B%A0%E6%B3%95%E8%AF%A6%E8%A7%A3/" title="分库分表基因法详解——从原理到实战">分库分表基因法详解——从原理到实战</a><time datetime="2026-07-23T07:00:00.000Z" title="发表于 2026-07-23 15:00:00">2026-07-23</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/17/Redis-Hash%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/" title="Redis Hash 扩容机制详解（1000 万数据场景）">Redis Hash 扩容机制详解（1000 万数据场景）</a><time datetime="2026-07-17T02:00:00.000Z" title="发表于 2026-07-17 10:00:00">2026-07-17</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By 刘华强</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.2</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.5</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/blog/js/utils.js?v=5.5.5"></script><script src="/blog/js/main.js?v=5.5.5"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/blog/js/search/local-search.js?v=5.5.5"></script></div></div></body></html>
