@@ -1111,7 +1111,21 @@
 <li>JVM 常用启动参数逐个解释</li>
 <li>OOM、内存泄漏、频繁 Young GC 的排查套路</li>
 </ol>
+<p>如果你愿意，我下一条可以继续给你讲这几个更实战的方向之一：</p>
+<ol>
+<li>G1 垃圾回收器详解</li>
+<li>一次 Full GC 频繁问题怎么排查</li>
+<li>JVM 常用启动参数逐个解释</li>
+<li>OOM、内存泄漏、频繁 Young GC 的排查套路</li>
+</ol>
 <p>你选一个，我继续往下展开。</p>
+<hr>
+<h2 id="延伸阅读-·-JVM-知识闭环"><a href="#延伸阅读-·-JVM-知识闭环" class="headerlink" title="延伸阅读 · JVM 知识闭环"></a>延伸阅读 · JVM 知识闭环</h2><ul>
+<li><a href="/blog/2026/07/01/Java%E5%9B%9B%E7%A7%8D%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B%E8%AF%A6%E8%A7%A3/">Java 四种引用类型详解</a> — 强软弱虚引用与 GC 的关系</li>
+<li><a href="/blog/2024/04/10/%E7%BA%BF%E7%A8%8B%E6%B1%A0%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">线程池深度解析</a> — 线程池配置与 GC 的关联</li>
+<li><a href="/blog/2026/07/27/synchronized%E9%9D%A2%E8%AF%95%E9%A2%98%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">synchronized 面试题深度解析</a> — 锁升级与 JVM 层面的实现</li>
+<li><a href="/blog/2026/07/24/StringBuilder%E5%BA%95%E5%B1%82%E6%BA%90%E7%A0%81%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/">StringBuilder 底层源码原理详解</a> — 字符串拼接与内存分配</li>
+</ul>
 <p>指数退避，英文一般叫 Exponential Backoff，是做重试时非常常见的一种策略。</p>
 <p>它的核心思想是：</p>
 <p>第一次失败后先等一小会儿再重试；<br>如果还失败，就等更久；<br>再失败，就等得更更久。<br>等待时间按“指数级”增长。</p>
@@ -1501,6 +1515,12 @@
 <li>消费层：PushServer 突破 Partition 数量限制，按时间回溯比按 offset 更友好</li>
 <li>接入层：MDP 框架注解驱动，与美团内部基础设施深度集成，开箱即用</li>
 </ol>
+<hr>
+<h2 id="延伸阅读-·-消息队列知识闭环"><a href="#延伸阅读-·-消息队列知识闭环" class="headerlink" title="延伸阅读 · 消息队列知识闭环"></a>延伸阅读 · 消息队列知识闭环</h2><ul>
+<li><a href="/blog/2026/07/29/Kafka%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/">Kafka 核心原理详解</a> — Kafka 底层存储模型与高吞吐原理</li>
+<li><a href="/blog/2024/03/05/%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/">限流设计与实现</a> — MQ 削峰与限流的协同配合</li>
+<li><a href="/blog/2026/07/01/Redis%E5%B9%82%E7%AD%89%E6%8E%A7%E5%88%B6%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E8%AE%BE%E8%AE%A1/">Redis 幂等控制分布式锁设计</a> — 消息消费的幂等性保证</li>
+</ul>
 ]]></content>
       <categories>
         <category>中间件</category>
@@ -1787,6 +1807,12 @@
 <li><strong>1000 万数据扩容</strong>：全过程中单次请求的额外开销只是一个 bucket 的迁移，用户无感知</li>
 </ol>
 <p>对于大 Hash，<strong>业务分片</strong>是最佳实践——将一个大 key 拆成多个小 key，既降低了单次 rehash 的规模，又避免了单个大 key 成为热点或慢操作源。</p>
+<hr>
+<h2 id="延伸阅读-·-Redis-知识闭环"><a href="#延伸阅读-·-Redis-知识闭环" class="headerlink" title="延伸阅读 · Redis 知识闭环"></a>延伸阅读 · Redis 知识闭环</h2><ul>
+<li><a href="/blog/2026/07/29/Redis%E7%BC%93%E5%AD%98%E4%B8%89%E5%A4%A7%E9%97%AE%E9%A2%98%E8%AF%A6%E8%A7%A3/">Redis 缓存三大问题详解</a> — 穿透·击穿·雪崩的完整解决方案</li>
+<li><a href="/blog/2026/07/01/Redis%E5%B9%82%E7%AD%89%E6%8E%A7%E5%88%B6%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E8%AE%BE%E8%AE%A1/">Redis 幂等控制分布式锁设计</a> — 分布式锁的正确实现</li>
+<li><a href="/blog/2024/06/15/JVM%E6%A0%B8%E5%BF%83%E7%9F%A5%E8%AF%86/">JVM 核心知识</a> — 内存分配与 GC 对 Redis 性能的影响</li>
+</ul>
 ]]></content>
       <categories>
         <category>后端</category>
@@ -2508,6 +2534,14 @@
 <blockquote>
 <p>建议把 EXPLAIN 的 <code>type</code> 等级和 <code>Extra</code> 关键值烂熟于心，这是面试中最容易拉开差距的知识点。</p>
 </blockquote>
+<hr>
+<h2 id="延伸阅读-·-数据库知识闭环"><a href="#延伸阅读-·-数据库知识闭环" class="headerlink" title="延伸阅读 · 数据库知识闭环"></a>延伸阅读 · 数据库知识闭环</h2><ul>
+<li><a href="/blog/2026/07/29/MySQL%E9%94%81%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/">MySQL 锁机制详解</a> — 行锁·间隙锁·临键锁，理解锁才能写出高性能 SQL</li>
+<li><a href="/blog/2026/07/17/MySQL%E9%95%BF%E4%BA%8B%E5%8A%A1%E5%AF%B9MVCC%E7%9A%84%E5%BD%B1%E5%93%8D/">MySQL 长事务对 MVCC 的影响</a> — 长事务是慢查询的隐性杀手</li>
+<li><a href="/blog/2026/07/28/MVCC%E5%BA%95%E5%B1%82%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/">MVCC 底层原理详解</a> — ReadView + 版本链的完整可见性判断</li>
+<li><a href="/blog/2026/07/01/%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB%E6%80%A7%E5%8E%9F%E7%90%86/">事务隔离性的原理</a> — 锁 + MVCC + 隔离级别三位一体</li>
+<li><a href="/blog/2026/07/23/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E5%9F%BA%E5%9B%A0%E6%B3%95%E8%AF%A6%E8%A7%A3/">分库分表基因法详解</a> — 大数据量下的终极优化方案</li>
+</ul>
 ]]></content>
       <categories>
         <category>数据库</category>
@@ -3147,6 +3181,13 @@
 <li>✅ 最后排查数据库引擎、多线程等基础设施问题</li>
 </ol>
 <p>代理机制是 Spring 事务的<strong>唯一入口</strong>，绕过了代理就等于绕过了事务。</p>
+<hr>
+<h2 id="延伸阅读-·-Spring-知识闭环"><a href="#延伸阅读-·-Spring-知识闭环" class="headerlink" title="延伸阅读 · Spring 知识闭环"></a>延伸阅读 · Spring 知识闭环</h2><ul>
+<li><a href="/blog/2026/07/28/Spring-Bean%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E8%AF%A6%E8%A7%A3/">Spring Bean 生命周期详解</a> — AOP 代理在 Bean 生命周期的哪个阶段创建</li>
+<li><a href="/blog/2026/07/28/SpringBoot%E8%87%AA%E5%8A%A8%E8%A3%85%E9%85%8D%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/">Spring Boot 自动装配原理详解</a> — 事务自动配置的加载时机</li>
+<li><a href="/blog/2026/07/01/%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB%E6%80%A7%E5%8E%9F%E7%90%86/">事务隔离性的原理</a> — Spring 事务的数据库底层支撑</li>
+<li><a href="/blog/2026/07/29/MySQL%E9%94%81%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/">MySQL 锁机制详解</a> — 事务与锁的底层配合</li>
+</ul>
 ]]></content>
       <categories>
         <category>后端</category>
@@ -3420,6 +3461,13 @@
 </blockquote>
 <hr>
 <p><em>Spring Bean 生命周期是 Spring 最核心的基础知识之一。从 BeanDefinition 到销毁，13 个阶段环环相扣，7 个扩展点提供定制能力，三级缓存解决循环依赖，最终配合 AOP 代理完成完整的 Bean 管理。</em></p>
+<hr>
+<h2 id="延伸阅读-·-Spring-知识闭环"><a href="#延伸阅读-·-Spring-知识闭环" class="headerlink" title="延伸阅读 · Spring 知识闭环"></a>延伸阅读 · Spring 知识闭环</h2><ul>
+<li><a href="/blog/2026/07/28/SpringBoot%E8%87%AA%E5%8A%A8%E8%A3%85%E9%85%8D%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/">Spring Boot 自动装配原理详解</a> — BeanDefinition 的来源：如何从 @Configuration 到 BeanDefinition</li>
+<li><a href="/blog/2026/07/24/Spring-AOP%E4%B8%8E%E4%BA%8B%E5%8A%A1%E5%A4%B1%E6%95%88%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/">Spring AOP 与事务失效原理详解</a> — Bean 生命周期中的 AOP 代理创建时机</li>
+<li><a href="/blog/2026/06/29/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%E9%9D%A2%E8%AF%95%E9%A2%98%E5%A4%A7%E5%85%A8/">单例模式面试题大全</a> — Spring 单例 Bean 与设计模式单例的区别</li>
+<li><a href="/blog/2024/06/15/JVM%E6%A0%B8%E5%BF%83%E7%9F%A5%E8%AF%86/">JVM 核心知识</a> — Bean 对象在堆中的内存分配</li>
+</ul>
 ]]></content>
       <categories>
         <category>后端</category>
@@ -3647,6 +3695,12 @@
 <blockquote>
 <p>本文基于 JDK 8 源码分析。JDK 9+ 中 String 底层改为 byte[]（Compact Strings），但 StringBuilder 的设计思想不变，只是 char[] 变成了 byte[] + coder 标记。</p>
 </blockquote>
+<hr>
+<h2 id="延伸阅读-·-Java-基础知识闭环"><a href="#延伸阅读-·-Java-基础知识闭环" class="headerlink" title="延伸阅读 · Java 基础知识闭环"></a>延伸阅读 · Java 基础知识闭环</h2><ul>
+<li><a href="/blog/2024/06/15/JVM%E6%A0%B8%E5%BF%83%E7%9F%A5%E8%AF%86/">JVM 核心知识</a> — 字符串对象在堆中的分配与 GC</li>
+<li><a href="/blog/2026/07/01/Java%E5%9B%9B%E7%A7%8D%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B%E8%AF%A6%E8%A7%A3/">Java 四种引用类型详解</a> — 引用类型如何影响字符串对象的生命周期</li>
+<li><a href="/blog/2024/04/10/%E7%BA%BF%E7%A8%8B%E6%B1%A0%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">线程池深度解析</a> — 高并发下 StringBuilder vs StringBuffer 的选择</li>
+</ul>
 ]]></content>
       <categories>
         <category>后端</category>
@@ -3662,7 +3716,13 @@
   <entry>
     <title>三方仓对接监控体系</title>
     <url>/blog/2024/09/01/%E4%B8%89%E6%96%B9%E4%BB%93%E5%AF%B9%E6%8E%A5%E7%9B%91%E6%8E%A7%E4%BD%93%E7%B3%BB/</url>
-    <content><![CDATA[<h2 id="一、推送链路（出方向）"><a href="#一、推送链路（出方向）" class="headerlink" title="一、推送链路（出方向）"></a>一、推送链路（出方向）</h2><h3 id="1-1-推送成功率（Raptor-Business-指标）"><a href="#1-1-推送成功率（Raptor-Business-指标）" class="headerlink" title="1.1 推送成功率（Raptor Business 指标）"></a>1.1 推送成功率（Raptor Business 指标）</h3><table>
+    <content><![CDATA[<ul>
+<li>监控</li>
+<li>WMS</li>
+<li>供应链</li>
+</ul>
+<hr>
+<h2 id="一、推送链路（出方向）"><a href="#一、推送链路（出方向）" class="headerlink" title="一、推送链路（出方向）"></a>一、推送链路（出方向）</h2><h3 id="1-1-推送成功率（Raptor-Business-指标）"><a href="#1-1-推送成功率（Raptor-Business-指标）" class="headerlink" title="1.1 推送成功率（Raptor Business 指标）"></a>1.1 推送成功率（Raptor Business 指标）</h3><table>
 <thead>
 <tr>
 <th>指标</th>
@@ -3874,6 +3934,7 @@
         <category>后端</category>
       </categories>
       <tags>
+        <tag>系统设计</tag>
         <tag>监控</tag>
         <tag>WMS</tag>
         <tag>供应链</tag>
@@ -4010,6 +4071,13 @@
 </tr>
 </tbody></table>
 <p><strong>一句话总结</strong>：锁保证写着之间不打架；MVCC 通过保留历史版本 + ReadView 判定可见性，保证读者看到一致的数据快照而不阻塞写者；隔离级别的区别本质上就是”ReadView 什么时候创建”以及”要不要加间隙锁”这两个策略的差异。</p>
+<hr>
+<h2 id="延伸阅读-·-数据库知识闭环"><a href="#延伸阅读-·-数据库知识闭环" class="headerlink" title="延伸阅读 · 数据库知识闭环"></a>延伸阅读 · 数据库知识闭环</h2><ul>
+<li><a href="/blog/2026/07/28/MVCC%E5%BA%95%E5%B1%82%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/">MVCC 底层原理详解</a> — Undo Log 版本链 + ReadView 可见性判断的完整推导</li>
+<li><a href="/blog/2026/07/17/MySQL%E9%95%BF%E4%BA%8B%E5%8A%A1%E5%AF%B9MVCC%E7%9A%84%E5%BD%B1%E5%93%8D/">MySQL 长事务对 MVCC 的影响</a> — 长事务如何导致 Undo Log 暴涨和查询变慢</li>
+<li><a href="/blog/2026/07/29/MySQL%E9%94%81%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/">MySQL 锁机制详解</a> — 行锁·间隙锁·临键锁·意向锁·死锁全解</li>
+<li><a href="/blog/2024/05/20/SQL%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98/">SQL 优化实战</a> — 从 EXPLAIN 到索引优化再到隔离级别的实战串联</li>
+</ul>
 ]]></content>
       <categories>
         <category>数据库</category>
@@ -4342,6 +4410,12 @@
 </blockquote>
 <hr>
 <p><em>Spring Boot 自动装配的本质是一种”约定优于配置 + 条件驱动”的设计模式。理解了 <code>@EnableAutoConfiguration</code> → <code>AutoConfigurationImportSelector</code> → <code>@Conditional</code> 这条链，就理解了整个自动装配机制。</em></p>
+<hr>
+<h2 id="延伸阅读-·-Spring-知识闭环"><a href="#延伸阅读-·-Spring-知识闭环" class="headerlink" title="延伸阅读 · Spring 知识闭环"></a>延伸阅读 · Spring 知识闭环</h2><ul>
+<li><a href="/blog/2026/07/28/Spring-Bean%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E8%AF%A6%E8%A7%A3/">Spring Bean 生命周期详解</a> — 自动装配后的 Bean 如何完成初始化</li>
+<li><a href="/blog/2026/07/24/Spring-AOP%E4%B8%8E%E4%BA%8B%E5%8A%A1%E5%A4%B1%E6%95%88%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/">Spring AOP 与事务失效原理详解</a> — 自动装配的 AOP 代理与事务拦截</li>
+<li><a href="/blog/2026/06/29/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%E9%9D%A2%E8%AF%95%E9%A2%98%E5%A4%A7%E5%85%A8/">单例模式面试题大全</a> — Spring Boot 自动装配的 Bean 默认都是单例</li>
+</ul>
 ]]></content>
       <categories>
         <category>后端</category>
@@ -4528,6 +4602,12 @@
 </blockquote>
 <hr>
 <p><em>尾差控制是供应链系统的基本功，也是高频面试题。核心就两个原则：用整数代替浮点、用唯一中转路径代替多路径换算。再加上分配规则明确和定时对账兜底，可以覆盖绝大部分生产场景。</em></p>
+<hr>
+<h2 id="延伸阅读-·-供应链知识闭环"><a href="#延伸阅读-·-供应链知识闭环" class="headerlink" title="延伸阅读 · 供应链知识闭环"></a>延伸阅读 · 供应链知识闭环</h2><ul>
+<li><a href="/blog/2024/07/01/%E5%BA%93%E5%AD%98%E7%B3%BB%E7%BB%9F%E6%A0%B8%E5%BF%83%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/">库存系统核心机制详解</a> — 从定位到计价到扣减的完整链路</li>
+<li><a href="/blog/2026/07/28/%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3%E8%AE%BE%E8%AE%A1%E4%B8%8EWMS%E5%AF%B9%E6%8E%A5%E5%AE%9E%E8%B7%B5/">开放接口设计与 WMS 对接实践</a> — 第三方系统对接的接口规范</li>
+<li><a href="/blog/2024/09/01/%E4%B8%89%E6%96%B9%E4%BB%93%E5%AF%B9%E6%8E%A5%E7%9B%91%E6%8E%A7%E4%BD%93%E7%B3%BB/">三方仓对接监控体系</a> — 数据准确性的事后保障</li>
+</ul>
 ]]></content>
       <categories>
         <category>后端</category>
@@ -4815,6 +4895,13 @@
 </tbody></table>
 <p><strong>一句话记忆</strong>：基因法就是<strong>让你的 ID “记住”自己属于哪个分片</strong>——就像身份证号告诉你籍贯一样。</p>
 <hr>
+<h2 id="延伸阅读-·-分布式架构知识闭环"><a href="#延伸阅读-·-分布式架构知识闭环" class="headerlink" title="延伸阅读 · 分布式架构知识闭环"></a>延伸阅读 · 分布式架构知识闭环</h2><ul>
+<li><a href="/blog/2024/05/20/SQL%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98/">SQL 优化实战</a> — 单表优化做完后，数据量再大就需要分库分表</li>
+<li><a href="/blog/2026/07/29/MySQL%E9%94%81%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/">MySQL 锁机制详解</a> — 分库分表后跨库事务与锁的变化</li>
+<li><a href="/blog/2026/07/29/Kafka%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/">Kafka 核心原理详解</a> — 海量数据的异步处理搭档</li>
+<li><a href="/blog/2024/03/05/%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/">限流设计与实现</a> — 分布式架构下的流量控制</li>
+</ul>
+<hr>
 <p><em>本文写于 2026 年 7 月，参考了 ShardingSphere、Vitess 等开源分库分表中间件的设计理念。</em></p>
 ]]></content>
       <categories>
@@ -5059,6 +5146,12 @@
 <li><strong>破坏与防御</strong>（反射、序列化、clone、多 ClassLoader）</li>
 </ol>
 <p>把这三块讲清楚，单例模式面试基本就能过。</p>
+<hr>
+<h2 id="延伸阅读-·-设计模式知识闭环"><a href="#延伸阅读-·-设计模式知识闭环" class="headerlink" title="延伸阅读 · 设计模式知识闭环"></a>延伸阅读 · 设计模式知识闭环</h2><ul>
+<li><a href="/blog/2026/07/28/Spring-Bean%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E8%AF%A6%E8%A7%A3/">Spring Bean 生命周期详解</a> — Spring 单例 Bean 的完整生命周期</li>
+<li><a href="/blog/2024/04/10/%E7%BA%BF%E7%A8%8B%E6%B1%A0%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">线程池深度解析</a> — 线程池本身也是单例管理</li>
+<li><a href="/blog/2026/07/27/synchronized%E9%9D%A2%E8%AF%95%E9%A2%98%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">synchronized 面试题深度解析</a> — DCL 的 volatile 与 synchronized 的关联</li>
+</ul>
 ]]></content>
       <categories>
         <category>后端</category>
@@ -5776,6 +5869,14 @@
 <td>自旋超限 &#x2F; 第三个线程竞争 &#x2F; CAS 频繁失败</td>
 </tr>
 </tbody></table>
+<hr>
+<h2 id="延伸阅读-·-并发知识闭环"><a href="#延伸阅读-·-并发知识闭环" class="headerlink" title="延伸阅读 · 并发知识闭环"></a>延伸阅读 · 并发知识闭环</h2><ul>
+<li><a href="/blog/2024/02/01/%E6%AD%BB%E9%94%81%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3%E6%8C%87%E5%8D%97/">死锁问题解决指南</a> — synchronized 使用不当的常见后果</li>
+<li><a href="/blog/2024/04/10/%E7%BA%BF%E7%A8%8B%E6%B1%A0%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">线程池深度解析</a> — 线程池任务中的锁竞争</li>
+<li><a href="/blog/2026/07/29/MySQL%E9%94%81%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/">MySQL 锁机制详解</a> — JVM 锁 vs 数据库锁的不同层面</li>
+<li><a href="/blog/2026/06/29/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%E9%9D%A2%E8%AF%95%E9%A2%98%E5%A4%A7%E5%85%A8/">单例模式面试题大全</a> — DCL 中 synchronized + volatile 的经典配合</li>
+<li><a href="/blog/2024/06/15/JVM%E6%A0%B8%E5%BF%83%E7%9F%A5%E8%AF%86/">JVM 核心知识</a> — 锁升级与 JVM 层面的实现细节</li>
+</ul>
 ]]></content>
       <categories>
         <category>后端</category>
@@ -5841,13 +5942,23 @@
 
 <hr>
 <h2 id="五、解决优先级建议"><a href="#五、解决优先级建议" class="headerlink" title="五、解决优先级建议"></a>五、解决优先级建议</h2><p>高频死锁  →  先找循环等待链 → 统一加锁顺序（最有效）<br>偶发死锁  →  tryLock + 重试 兜底<br>数据库死锁 → 拆分事务 + 索引优化<br>架构层    → 考虑无锁设计（CAS&#x2F;Disruptor）或串行化（单线程队列）</p>
+<hr>
+<h2 id="延伸阅读-·-并发知识闭环"><a href="#延伸阅读-·-并发知识闭环" class="headerlink" title="延伸阅读 · 并发知识闭环"></a>延伸阅读 · 并发知识闭环</h2><ul>
+<li><a href="/blog/2026/07/29/MySQL%E9%94%81%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/">MySQL 锁机制详解</a> — 数据库死锁的底层原理与排查</li>
+<li><a href="/blog/2026/07/27/synchronized%E9%9D%A2%E8%AF%95%E9%A2%98%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">synchronized 面试题深度解析</a> — Java 层面的锁机制</li>
+<li><a href="/blog/2024/04/10/%E7%BA%BF%E7%A8%8B%E6%B1%A0%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">线程池深度解析</a> — 任务提交与并发控制</li>
+<li><a href="/blog/2026/07/01/Redis%E5%B9%82%E7%AD%89%E6%8E%A7%E5%88%B6%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E8%AE%BE%E8%AE%A1/">Redis 幂等控制分布式锁设计</a> — 分布式场景下的锁</li>
+</ul>
 ]]></content>
       <categories>
         <category>后端</category>
       </categories>
       <tags>
+        <tag>Java</tag>
+        <tag>面试</tag>
         <tag>MySQL</tag>
         <tag>并发</tag>
+        <tag>锁</tag>
         <tag>死锁</tag>
       </tags>
   </entry>
@@ -6265,6 +6376,13 @@
 </blockquote>
 <hr>
 <p><em>本文覆盖了开放接口设计、鉴权方案选型和 WMS 对接的核心实践。其中 AK&#x2F;SK + HMAC 签名是系统间调用最常用的方案，WMS 对接的核心难点在于异步流程设计和状态机对齐。</em></p>
+<hr>
+<h2 id="延伸阅读-·-供应链知识闭环"><a href="#延伸阅读-·-供应链知识闭环" class="headerlink" title="延伸阅读 · 供应链知识闭环"></a>延伸阅读 · 供应链知识闭环</h2><ul>
+<li><a href="/blog/2024/07/01/%E5%BA%93%E5%AD%98%E7%B3%BB%E7%BB%9F%E6%A0%B8%E5%BF%83%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/">库存系统核心机制详解</a> — 对接背后的库存扣减逻辑</li>
+<li><a href="/blog/2026/07/28/%E4%BE%9B%E5%BA%94%E9%93%BE%E5%A4%9A%E5%8D%95%E4%BD%8D%E6%8D%A2%E7%AE%97%E4%B8%8E%E5%B0%BE%E5%B7%AE%E6%8E%A7%E5%88%B6/">供应链多单位换算与尾差控制</a> — 对接中多单位数据的一致性</li>
+<li><a href="/blog/2024/09/01/%E4%B8%89%E6%96%B9%E4%BB%93%E5%AF%B9%E6%8E%A5%E7%9B%91%E6%8E%A7%E4%BD%93%E7%B3%BB/">三方仓对接监控体系</a> — 对接后的监控与告警</li>
+<li><a href="/blog/2024/03/05/%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/">限流设计与实现</a> — 开放 API 的限流保护</li>
+</ul>
 ]]></content>
       <categories>
         <category>后端</category>
@@ -6280,7 +6398,12 @@
   <entry>
     <title>第一家面试复盘</title>
     <url>/blog/2024/01/15/%E7%AC%AC%E4%B8%80%E5%AE%B6%E9%9D%A2%E8%AF%95%E5%A4%8D%E7%9B%98/</url>
-    <content><![CDATA[<hr>
+    <content><![CDATA[<ul>
+<li>面试</li>
+<li>美团</li>
+</ul>
+<hr>
+<hr>
 <p>🎯 面试题预测与解答</p>
 <p>你的核心优势 vs JD 匹配点</p>
 <ul>
@@ -6940,6 +7063,7 @@
       <tags>
         <tag>面试</tag>
         <tag>美团</tag>
+        <tag>自我介绍</tag>
       </tags>
   </entry>
   <entry>
@@ -7533,12 +7657,21 @@
 <td>补录后到重算完成前存在窗口期，业务接受暂时不准确</td>
 </tr>
 </tbody></table>
+<hr>
+<h2 id="延伸阅读-·-供应链知识闭环"><a href="#延伸阅读-·-供应链知识闭环" class="headerlink" title="延伸阅读 · 供应链知识闭环"></a>延伸阅读 · 供应链知识闭环</h2><ul>
+<li><a href="/blog/2026/07/28/%E4%BE%9B%E5%BA%94%E9%93%BE%E5%A4%9A%E5%8D%95%E4%BD%8D%E6%8D%A2%E7%AE%97%E4%B8%8E%E5%B0%BE%E5%B7%AE%E6%8E%A7%E5%88%B6/">供应链多单位换算与尾差控制</a> — 出入库数量的精度保证</li>
+<li><a href="/blog/2026/07/28/%E5%BC%80%E6%94%BE%E6%8E%A5%E5%8F%A3%E8%AE%BE%E8%AE%A1%E4%B8%8EWMS%E5%AF%B9%E6%8E%A5%E5%AE%9E%E8%B7%B5/">开放接口设计与 WMS 对接实践</a> — 第三方仓库系统的对接方案</li>
+<li><a href="/blog/2024/09/01/%E4%B8%89%E6%96%B9%E4%BB%93%E5%AF%B9%E6%8E%A5%E7%9B%91%E6%8E%A7%E4%BD%93%E7%B3%BB/">三方仓对接监控体系</a> — 仓库对接的监控保障</li>
+<li><a href="/blog/2026/07/29/MySQL%E9%94%81%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/">MySQL 锁机制详解</a> — 库存扣减中的乐观锁与防超卖</li>
+</ul>
 ]]></content>
       <categories>
         <category>后端</category>
       </categories>
       <tags>
+        <tag>面试</tag>
         <tag>系统设计</tag>
+        <tag>WMS</tag>
         <tag>供应链</tag>
         <tag>库存</tag>
       </tags>
@@ -7941,7 +8074,14 @@
 <hr>
 <h2 id="十六、一句话总结线程池原理"><a href="#十六、一句话总结线程池原理" class="headerlink" title="十六、一句话总结线程池原理"></a>十六、一句话总结线程池原理</h2><p>线程池本质上是：用一组可复用的工作线程 + 一个任务阻塞队列 + 一套线程数量与生命周期控制策略，来高效、稳定、可控</p>
 <hr>
-<p>总结<br>Java 线程池的原理核心是：任务提交时按“核心线程 → 队列 → 非核心线程 → 拒绝策略”的顺序处理，线程通过循环取任务实现复用，线程池再通过状态、队列和参数对并发进行统一管理。 如果你愿意，我下一条可以继续给你讲 ThreadPoolExecutor 源码执行流程 或 线程池参数如何在面试里回答。</p>
+<p>总结<br>Java 线程池的原理核心是：任务提交时按”核心线程 → 队列 → 非核心线程 → 拒绝策略”的顺序处理，线程通过循环取任务实现复用，线程池再通过状态、队列和参数对并发进行统一管理。</p>
+<hr>
+<h2 id="延伸阅读-·-并发知识闭环"><a href="#延伸阅读-·-并发知识闭环" class="headerlink" title="延伸阅读 · 并发知识闭环"></a>延伸阅读 · 并发知识闭环</h2><ul>
+<li><a href="/blog/2026/07/27/synchronized%E9%9D%A2%E8%AF%95%E9%A2%98%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">synchronized 面试题深度解析</a> — Java 内置锁的底层原理</li>
+<li><a href="/blog/2024/02/01/%E6%AD%BB%E9%94%81%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3%E6%8C%87%E5%8D%97/">死锁问题解决指南</a> — 线程池任务相互等待可能触发死锁</li>
+<li><a href="/blog/2024/06/15/JVM%E6%A0%B8%E5%BF%83%E7%9F%A5%E8%AF%86/">JVM 核心知识</a> — GC 线程与业务线程的交互</li>
+<li><a href="/blog/2026/07/01/Redis%E5%B9%82%E7%AD%89%E6%8E%A7%E5%88%B6%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E8%AE%BE%E8%AE%A1/">Redis 幂等控制分布式锁设计</a> — 分布式场景下的锁与并发</li>
+</ul>
 ]]></content>
       <categories>
         <category>后端</category>
@@ -9016,8 +9156,14 @@
 <p>适合 2~3 分钟口述，精炼、有层次、容易记</p>
 <hr>
 <p>总结</p>
-<p>开放平台限流的标准做法是：网关做通用限流，应用做业务限流，配额中心做总量控制，资源层做兜底保护；算法上通常以令牌桶 + Redis&#x2F;Lua为主，再结合并发限制、日配额、监控告警、提额白名单形成完整体系。<br>如果你要，我下一条可以直接给你 Java 完整伪代码版。</p>
-<p>开放平台和普通内部系统不一样，原因主要有 4 个：</p>
+<p>开放平台限流的标准做法是：网关做通用限流，应用做业务限流，配额中心做总量控制，资源层做兜底保护；算法上通常以令牌桶 + Redis&#x2F;Lua为主，再结合并发限制、日配额、监控告警、提额白名单形成完整体系。</p>
+<hr>
+<h2 id="延伸阅读-·-架构知识闭环"><a href="#延伸阅读-·-架构知识闭环" class="headerlink" title="延伸阅读 · 架构知识闭环"></a>延伸阅读 · 架构知识闭环</h2><ul>
+<li><a href="/blog/2026/07/29/Redis%E7%BC%93%E5%AD%98%E4%B8%89%E5%A4%A7%E9%97%AE%E9%A2%98%E8%AF%A6%E8%A7%A3/">Redis 缓存三大问题详解</a> — 缓存不可用时，限流是保护 DB 的最后防线</li>
+<li><a href="/blog/2026/07/29/Kafka%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/">Kafka 核心原理详解</a> — 削峰填谷的消息队列 + 限流组合</li>
+<li><a href="/blog/2026/07/01/Redis%E5%B9%82%E7%AD%89%E6%8E%A7%E5%88%B6%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E8%AE%BE%E8%AE%A1/">Redis 幂等控制分布式锁设计</a> — 限流中 Redis + Lua 的实现细节</li>
+<li><a href="/blog/2026/07/23/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E5%9F%BA%E5%9B%A0%E6%B3%95%E8%AF%A6%E8%A7%A3/">分库分表基因法详解</a> — 分布式架构的另一核心组件</li>
+</ul>
 ]]></content>
       <categories>
         <category>架构</category>
@@ -9030,7 +9176,12 @@
   <entry>
     <title>面试自我介绍</title>
     <url>/blog/2024/01/01/%E9%9D%A2%E8%AF%95%E8%87%AA%E6%88%91%E4%BB%8B%E7%BB%8D/</url>
-    <content><![CDATA[<p>面试官您好，我叫刘华强，有 5 年 Java 后端开发经验，目前主要在美团做供应链方向的后端研发。</p>
+    <content><![CDATA[<ul>
+<li>面试</li>
+<li>自我介绍</li>
+</ul>
+<hr>
+<p>面试官您好，我叫刘华强，有 5 年 Java 后端开发经验，目前主要在美团做供应链方向的后端研发。</p>
 <p>我做过库存、采购、配送、开放接口、代仓 WMS、ERP 对接等业务，对供应链系统的核心链路比较熟悉。前两年主要负责库存模块建设，完善了出入库、调拨、盘点、批次调整等库存业务闭环<br>，同时也做了库存预警、月结控制、数据归档等工作，保障库存数据准确性</p>
 <p>最近几年我主要负责供应链开放对接方向，更多是在做平台化和标准化建设,供应链开放平台现在承载 60 多个开放接口；也主导重构了WMS对接平台，通过“标准层 + 差异层”的架构，把公共能力下沉，让新WMS系统接入更加快速高效。这个平台最终支撑了 35 家代仓上线，也明显降低了后续接入和维护成本。</p>
 <p>另外，我还做过三方 ERP 主动集成平台，支持了5套ERP系统、20多个业务通道稳定运行。过程中我比较关注接口稳定性和数据一致性，比如幂等, 锁,轮询兜底这些机制都有实际落地经验。</p>
@@ -9047,7 +9198,12 @@
   <entry>
     <title>领域主R职责与实践</title>
     <url>/blog/2024/08/01/%E9%A2%86%E5%9F%9F%E4%B8%BBR%E8%81%8C%E8%B4%A3%E4%B8%8E%E5%AE%9E%E8%B7%B5/</url>
-    <content><![CDATA[<h2 id="什么是领域主R"><a href="#什么是领域主R" class="headerlink" title="什么是领域主R"></a>什么是领域主R</h2><p>领域主R 是某个业务&#x2F;技术领域的第一责任人（Responsible Person），不仅是技术的 Owner，更是业务价值的守护者。</p>
+    <content><![CDATA[<ul>
+<li>技术管理</li>
+<li>领域驱动</li>
+</ul>
+<hr>
+<h2 id="什么是领域主R"><a href="#什么是领域主R" class="headerlink" title="什么是领域主R"></a>什么是领域主R</h2><p>领域主R 是某个业务&#x2F;技术领域的第一责任人（Responsible Person），不仅是技术的 Owner，更是业务价值的守护者。</p>
 <p>核心三个字：懂、管、推</p>
 <hr>
 <h2 id="我认为领域主R应该做什么"><a href="#我认为领域主R应该做什么" class="headerlink" title="我认为领域主R应该做什么"></a>我认为领域主R应该做什么</h2><h3 id="1-建立领域认知（懂）"><a href="#1-建立领域认知（懂）" class="headerlink" title="1. 建立领域认知（懂）"></a>1. 建立领域认知（懂）</h3><ul>
@@ -9104,6 +9260,7 @@
         <category>架构</category>
       </categories>
       <tags>
+        <tag>面试</tag>
         <tag>技术管理</tag>
         <tag>领域驱动</tag>
       </tags>
@@ -9402,6 +9559,731 @@
         <tag>事务</tag>
         <tag>InnoDB</tag>
         <tag>并发控制</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Kafka 核心原理详解</title>
+    <url>/blog/2026/07/29/Kafka%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/</url>
+    <content><![CDATA[<h1 id="Kafka-核心原理详解"><a href="#Kafka-核心原理详解" class="headerlink" title="Kafka 核心原理详解"></a>Kafka 核心原理详解</h1><p>Kafka 是分布式消息队列的事实标准，面试必问。本文从底层原理出发，覆盖架构设计、存储模型、高吞吐机制、可靠性保证和常见面试题。</p>
+<blockquote>
+<p>相关知识闭环：<a href="/blog/2024/02/20/Mafka%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E5%AE%9E%E8%B7%B5/">Mafka 消息队列实践</a> · <a href="/blog/2024/03/05/%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/">限流设计与实现</a> · <a href="/blog/2024/07/01/%E5%BA%93%E5%AD%98%E7%B3%BB%E7%BB%9F%E6%A0%B8%E5%BF%83%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/">库存系统核心机制详解</a></p>
+</blockquote>
+<hr>
+<h2 id="一、为什么需要消息队列？三大核心场景"><a href="#一、为什么需要消息队列？三大核心场景" class="headerlink" title="一、为什么需要消息队列？三大核心场景"></a>一、为什么需要消息队列？三大核心场景</h2><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>说明</th>
+<th>举例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>异步处理</strong></td>
+<td>生产方无需等待消费方</td>
+<td>下单后发短信&#x2F;邮件</td>
+</tr>
+<tr>
+<td><strong>系统解耦</strong></td>
+<td>上下游互不感知，松耦合</td>
+<td>订单系统与物流系统</td>
+</tr>
+<tr>
+<td><strong>流量削峰</strong></td>
+<td>高峰期把请求缓冲入 MQ</td>
+<td>秒杀场景</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>消息队列的完整实践：<a href="/blog/2024/02/20/Mafka%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E5%AE%9E%E8%B7%B5/">Mafka 消息队列实践</a></p>
+</blockquote>
+<hr>
+<h2 id="二、Kafka-架构全景"><a href="#二、Kafka-架构全景" class="headerlink" title="二、Kafka 架构全景"></a>二、Kafka 架构全景</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">┌────────────────────────────────────────────────────────────┐</span><br><span class="line">│                      Kafka Cluster                          │</span><br><span class="line">│                                                             │</span><br><span class="line">│  ┌──────────┐  ┌──────────┐  ┌──────────┐                │</span><br><span class="line">│  │ Broker 1 │  │ Broker 2 │  │ Broker 3 │                │</span><br><span class="line">│  │          │  │          │  │          │                │</span><br><span class="line">│  │ P0(主)   │  │ P0(从)   │  │ P1(从)   │                │</span><br><span class="line">│  │ P1(从)   │  │ P1(主)   │  │ P2(主)   │                │</span><br><span class="line">│  │ P2(从)   │  │ P2(从)   │  │ P0(从)   │  ← Replicas   │</span><br><span class="line">│  └──────────┘  └──────────┘  └──────────┘                │</span><br><span class="line">│                                                             │</span><br><span class="line">│  ZooKeeper / KRaft: Controller 选举 + 元数据管理            │</span><br><span class="line">└────────────────────────────────────────────────────────────┘</span><br><span class="line">         ↑                                  ↑</span><br><span class="line">    Producer 生产                     Consumer 消费</span><br><span class="line">    (Producer SDK)                   (Consumer Group)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="三、核心概念"><a href="#三、核心概念" class="headerlink" title="三、核心概念"></a>三、核心概念</h2><h3 id="3-1-Topic-Partition"><a href="#3-1-Topic-Partition" class="headerlink" title="3.1 Topic &amp; Partition"></a>3.1 Topic &amp; Partition</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Topic: order-topic (3 个 Partition)</span><br><span class="line"></span><br><span class="line">Partition 0: [msg0] [msg1] [msg2] [msg3] → offset 递增</span><br><span class="line">Partition 1: [msg0] [msg1] [msg2]        → 各 Partition 独立</span><br><span class="line">Partition 2: [msg0] [msg1]               → 有序但无序跨 Partition</span><br><span class="line"></span><br><span class="line">写入: Producer 指定 Partition 或 Key Hash</span><br><span class="line">消费: Consumer Group 内每个 Consumer 负责若干 Partition</span><br></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Topic</strong></td>
+<td>消息的逻辑分类</td>
+</tr>
+<tr>
+<td><strong>Partition</strong></td>
+<td>Topic 的物理分片，有序、不可变的消息序列</td>
+</tr>
+<tr>
+<td><strong>Offset</strong></td>
+<td>消息在 Partition 内的唯一编号（单调递增）</td>
+</tr>
+<tr>
+<td><strong>Broker</strong></td>
+<td>Kafka 服务器节点</td>
+</tr>
+<tr>
+<td><strong>Replica</strong></td>
+<td>Partition 的副本</td>
+</tr>
+</tbody></table>
+<h3 id="3-2-Consumer-Group"><a href="#3-2-Consumer-Group" class="headerlink" title="3.2 Consumer Group"></a>3.2 Consumer Group</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Consumer Group: order-consumer-group</span><br><span class="line">┌──────────────────────────────────┐</span><br><span class="line">│  Consumer 1: 负责 P0, P1         │</span><br><span class="line">│  Consumer 2: 负责 P2             │</span><br><span class="line">│  Consumer 3: 负责 P3             │</span><br><span class="line">└──────────────────────────────────┘</span><br><span class="line"></span><br><span class="line">规则:</span><br><span class="line">- 一个 Partition 只能被 Group 内一个 Consumer 消费</span><br><span class="line">- 一个 Consumer 可以消费多个 Partition</span><br><span class="line">- Consumer 数量 &gt; Partition 数量 → 有空闲 Consumer（浪费）</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="四、存储模型（高吞吐的核心）"><a href="#四、存储模型（高吞吐的核心）" class="headerlink" title="四、存储模型（高吞吐的核心）"></a>四、存储模型（高吞吐的核心）</h2><h3 id="4-1-顺序写盘"><a href="#4-1-顺序写盘" class="headerlink" title="4.1 顺序写盘"></a>4.1 顺序写盘</h3><p>Kafka 的核心设计哲学：<strong>顺序写磁盘比随机写内存还快。</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">传统 DB（随机 IO）:  B+Tree 节点散布在磁盘各处 → 寻道耗时</span><br><span class="line">Kafka（顺序 IO）:    所有消息追加到文件末尾 → 磁头几乎不动</span><br></pre></td></tr></table></figure>
+
+<p><strong>实测</strong>：顺序写盘可达 600MB&#x2F;s，随机写只有 100KB&#x2F;s。</p>
+<h3 id="4-2-Partition-存储结构"><a href="#4-2-Partition-存储结构" class="headerlink" title="4.2 Partition 存储结构"></a>4.2 Partition 存储结构</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">topic-0/</span><br><span class="line">├── 00000000000000000000.log      ← 消息数据文件（segment）</span><br><span class="line">├── 00000000000000000000.index    ← 稀疏索引</span><br><span class="line">├── 00000000000000000000.timeindex ← 时间索引</span><br><span class="line">├── 00000000000001234567.log</span><br><span class="line">├── 00000000000001234567.index</span><br><span class="line">└── ...</span><br><span class="line"></span><br><span class="line">.log 文件内部:</span><br><span class="line">┌────────┬────────┬────────┬────────┬────────┐</span><br><span class="line">│ offset │  size  │  data  │ offset │  size  │  data  │ ...</span><br><span class="line">└────────┴────────┴────────┴────────┴────────┘</span><br><span class="line">每条消息: [offset] [size] [key+value+headers]</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-Page-Cache（零拷贝）"><a href="#4-3-Page-Cache（零拷贝）" class="headerlink" title="4.3 Page Cache（零拷贝）"></a>4.3 Page Cache（零拷贝）</h3><p>Kafka 大量依赖 OS 的 <strong>Page Cache</strong> 来处理读写缓存：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">写入路径: Producer → OS Page Cache → (异步刷盘) → Disk</span><br><span class="line">读取路径: Consumer → OS Page Cache → (命中则返回) → Disk</span><br><span class="line"></span><br><span class="line">零拷贝 (sendfile):</span><br><span class="line">读取: Disk → Page Cache → (sendfile) → Socket Buffer → NIC</span><br><span class="line">       └── 无需拷贝到用户空间 ──┘ 节省 2 次 CPU 拷贝</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-4-分段-稀疏索引"><a href="#4-4-分段-稀疏索引" class="headerlink" title="4.4 分段 + 稀疏索引"></a>4.4 分段 + 稀疏索引</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">查找 offset=30000 的消息:</span><br><span class="line"></span><br><span class="line">1. 二分查找 .index 文件 → 找到 segment 起始 offset</span><br><span class="line">   offset=25000, position=1500000</span><br><span class="line">2. 定位到 .log 的 1500000 位置</span><br><span class="line">3. 顺序扫描到 offset=30000（最多扫描 log.index.interval.bytes/条）</span><br><span class="line"></span><br><span class="line">时间复杂度: O(log₂(segment数) + O(1))</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><strong>关键</strong>：索引只是稀疏的（默认每 4KB 建一条），不是每条消息都建索引，所以索引文件极小。</p>
+</blockquote>
+<hr>
+<h2 id="五、高吞吐设计总结"><a href="#五、高吞吐设计总结" class="headerlink" title="五、高吞吐设计总结"></a>五、高吞吐设计总结</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────────┐</span><br><span class="line">│              Kafka 高吞吐 = 七大设计                   │</span><br><span class="line">├─────────────────────────────────────────────────────┤</span><br><span class="line">│                                                      │</span><br><span class="line">│  1. 顺序写盘         → 追加写，无随机寻道              │</span><br><span class="line">│  2. Page Cache       → 读写优先走内存                 │</span><br><span class="line">│  3. 零拷贝(sendfile) → 数据传输不经过用户空间          │</span><br><span class="line">│  4. 批量发送         → Producer 攒够一批再发          │</span><br><span class="line">│  5. 批量压缩         → 减少网络 IO + 磁盘 IO          │</span><br><span class="line">│  6. 分区并行         → 多 Partition 多 Broker 并行    │</span><br><span class="line">│  7. 稀疏索引         → 索引小，可全部缓存到内存        │</span><br><span class="line">│                                                      │</span><br><span class="line">└─────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="六、可靠性保证"><a href="#六、可靠性保证" class="headerlink" title="六、可靠性保证"></a>六、可靠性保证</h2><h3 id="6-1-生产端-ACK-机制"><a href="#6-1-生产端-ACK-机制" class="headerlink" title="6.1 生产端 ACK 机制"></a>6.1 生产端 ACK 机制</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// acks=0: 不等待确认，最高吞吐，可能丢消息</span></span><br><span class="line">props.put(<span class="string">&quot;acks&quot;</span>, <span class="string">&quot;0&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// acks=1: Leader 写入 Page Cache 就确认（默认）</span></span><br><span class="line"><span class="comment">// → 若 Leader 宕机且未同步到 Follower → 可能丢消息</span></span><br><span class="line">props.put(<span class="string">&quot;acks&quot;</span>, <span class="string">&quot;1&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// acks=all/-1: 所有 ISR（In-Sync Replica）都确认</span></span><br><span class="line"><span class="comment">// → 最强可靠性，但延迟最高</span></span><br><span class="line">props.put(<span class="string">&quot;acks&quot;</span>, <span class="string">&quot;all&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 配合 min.insync.replicas 使用</span></span><br><span class="line"><span class="comment">// 至少要有 2 个副本确认，否则写入失败</span></span><br><span class="line">props.put(<span class="string">&quot;min.insync.replicas&quot;</span>, <span class="string">&quot;2&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<h3 id="6-2-ISR-机制"><a href="#6-2-ISR-机制" class="headerlink" title="6.2 ISR 机制"></a>6.2 ISR 机制</h3><p><strong>ISR（In-Sync Replicas）</strong>：与 Leader 保持同步的副本集合。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">如果 Follower 落后 Leader 超过 replica.lag.time.max.ms（默认 30s）</span><br><span class="line">→ 从 ISR 中移出</span><br><span class="line"></span><br><span class="line">如果 Follower 追上了 Leader</span><br><span class="line">→ 重新加入 ISR</span><br><span class="line"></span><br><span class="line">只有 ISR 内的副本可以被选举为新 Leader</span><br></pre></td></tr></table></figure>
+
+<h3 id="6-3-消费端-Offset-管理"><a href="#6-3-消费端-Offset-管理" class="headerlink" title="6.3 消费端 Offset 管理"></a>6.3 消费端 Offset 管理</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 自动提交（默认，可能丢消息）</span></span><br><span class="line">props.put(<span class="string">&quot;enable.auto.commit&quot;</span>, <span class="string">&quot;true&quot;</span>);</span><br><span class="line">props.put(<span class="string">&quot;auto.commit.interval.ms&quot;</span>, <span class="string">&quot;5000&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 手动提交（推荐，精确控制）</span></span><br><span class="line">props.put(<span class="string">&quot;enable.auto.commit&quot;</span>, <span class="string">&quot;false&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 处理完再提交</span></span><br><span class="line">consumer.poll(Duration.ofMillis(<span class="number">100</span>)).forEach(record -&gt; &#123;</span><br><span class="line">    process(record);</span><br><span class="line">&#125;);</span><br><span class="line">consumer.commitSync();  <span class="comment">// 同步提交，阻塞直至成功</span></span><br><span class="line"><span class="comment">// 或</span></span><br><span class="line">consumer.commitAsync(); <span class="comment">// 异步提交，高吞吐但不知是否成功</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="6-4-三种可靠性语义"><a href="#6-4-三种可靠性语义" class="headerlink" title="6.4 三种可靠性语义"></a>6.4 三种可靠性语义</h3><table>
+<thead>
+<tr>
+<th>语义</th>
+<th>含义</th>
+<th>实现方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>At Most Once</strong></td>
+<td>最多一次，可能丢</td>
+<td>acks&#x3D;0, 自动提交</td>
+</tr>
+<tr>
+<td><strong>At Least Once</strong></td>
+<td>至少一次，可能重复</td>
+<td>acks&#x3D;1&#x2F;all, 先处理后提交</td>
+</tr>
+<tr>
+<td><strong>Exactly Once</strong></td>
+<td>精确一次</td>
+<td>幂等 Producer + 事务</td>
+</tr>
+</tbody></table>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 幂等 Producer：即使重试也不会重复写入</span></span><br><span class="line">props.put(<span class="string">&quot;enable.idempotence&quot;</span>, <span class="string">&quot;true&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 事务 Producer</span></span><br><span class="line">producer.initTransactions();</span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">    producer.beginTransaction();</span><br><span class="line">    producer.send(record1);</span><br><span class="line">    producer.send(record2);</span><br><span class="line">    producer.commitTransaction();</span><br><span class="line">&#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">    producer.abortTransaction();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="七、Kafka-vs-其他-MQ"><a href="#七、Kafka-vs-其他-MQ" class="headerlink" title="七、Kafka vs 其他 MQ"></a>七、Kafka vs 其他 MQ</h2><table>
+<thead>
+<tr>
+<th>特性</th>
+<th>Kafka</th>
+<th>RocketMQ</th>
+<th>RabbitMQ</th>
+<th>Pulsar</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>吞吐量</strong></td>
+<td>极高（百万&#x2F;秒）</td>
+<td>高（十万&#x2F;秒）</td>
+<td>中（万&#x2F;秒）</td>
+<td>极高</td>
+</tr>
+<tr>
+<td><strong>延迟</strong></td>
+<td>毫秒级</td>
+<td>毫秒级</td>
+<td>微秒级</td>
+<td>毫秒级</td>
+</tr>
+<tr>
+<td><strong>持久化</strong></td>
+<td>✅ 磁盘</td>
+<td>✅ 磁盘</td>
+<td>✅ 磁盘</td>
+<td>✅ 分层存储</td>
+</tr>
+<tr>
+<td><strong>事务消息</strong></td>
+<td>✅</td>
+<td>✅</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>延迟消息</strong></td>
+<td>❌</td>
+<td>✅ 18级</td>
+<td>插件支持</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>适用场景</strong></td>
+<td>大数据&#x2F;日志&#x2F;流处理</td>
+<td>电商&#x2F;金融业务</td>
+<td>复杂路由</td>
+<td>多租户</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="八、常见面试题"><a href="#八、常见面试题" class="headerlink" title="八、常见面试题"></a>八、常见面试题</h2><h3 id="Q1：Kafka-为什么这么快？"><a href="#Q1：Kafka-为什么这么快？" class="headerlink" title="Q1：Kafka 为什么这么快？"></a>Q1：Kafka 为什么这么快？</h3><p>七大原因：顺序写盘 &gt; Page Cache &gt; 零拷贝 &gt; 批量发送 &gt; 批量压缩 &gt; 分区并行 &gt; 稀疏索引。核心是利用了磁盘顺序写的物理特性 + OS 层面的零拷贝优化。</p>
+<h3 id="Q2：Kafka-怎么保证消息不丢失？"><a href="#Q2：Kafka-怎么保证消息不丢失？" class="headerlink" title="Q2：Kafka 怎么保证消息不丢失？"></a>Q2：Kafka 怎么保证消息不丢失？</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">生产端: acks=all + retries &gt; 0 + min.insync.replicas &gt;= 2</span><br><span class="line">Broker端: replication.factor &gt;= 3 + unclean.leader.election.enable=false</span><br><span class="line">消费端: 手动提交 offset + 先处理后提交</span><br></pre></td></tr></table></figure>
+
+<h3 id="Q3：Kafka-怎么保证消息不重复？"><a href="#Q3：Kafka-怎么保证消息不重复？" class="headerlink" title="Q3：Kafka 怎么保证消息不重复？"></a>Q3：Kafka 怎么保证消息不重复？</h3><p>生产端开启幂等性（<code>enable.idempotence=true</code>），消费端做幂等处理（如用唯一业务 ID 去重，参考 <a href="/blog/2026/07/01/Redis%E5%B9%82%E7%AD%89%E6%8E%A7%E5%88%B6%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E8%AE%BE%E8%AE%A1/">Redis 幂等控制分布式锁设计</a>）。</p>
+<h3 id="Q4：Kafka-消费者组-Rebalance-是什么？"><a href="#Q4：Kafka-消费者组-Rebalance-是什么？" class="headerlink" title="Q4：Kafka 消费者组 Rebalance 是什么？"></a>Q4：Kafka 消费者组 Rebalance 是什么？</h3><p>当消费者组内成员变化（新增&#x2F;宕机）或 Partition 数量变化时，Kafka 重新分配 Partition 给 Consumer 的过程。Rebalance 期间整个 Group 停止消费（STW 效应），所以要尽量避免频繁 Rebalance。</p>
+<h3 id="Q5：为什么说-Kafka-是”不可变架构”？"><a href="#Q5：为什么说-Kafka-是”不可变架构”？" class="headerlink" title="Q5：为什么说 Kafka 是”不可变架构”？"></a>Q5：为什么说 Kafka 是”不可变架构”？</h3><p>Kafka 的消息一旦写入就不可修改，只能追加。删除是通过设置消息保留时间（<code>retention.ms</code>），过期后整个 segment 文件被删除。这种设计简化了并发控制，也是高吞吐的原因之一。</p>
+<h3 id="Q6：Kafka-为什么需要-ZooKeeper-KRaft？"><a href="#Q6：Kafka-为什么需要-ZooKeeper-KRaft？" class="headerlink" title="Q6：Kafka 为什么需要 ZooKeeper &#x2F; KRaft？"></a>Q6：Kafka 为什么需要 ZooKeeper &#x2F; KRaft？</h3><p>ZooKeeper（或新版 KRaft）用于：Controller 选举、Broker 元数据管理、Topic&#x2F;Partition 配置、消费者组 offset（旧版）。Kafka 3.3+ 已支持 KRaft 模式去除 ZK 依赖。</p>
+<hr>
+<h2 id="九、实战配置建议"><a href="#九、实战配置建议" class="headerlink" title="九、实战配置建议"></a>九、实战配置建议</h2><figure class="highlight properties"><table><tr><td class="code"><pre><span class="line"><span class="comment"># Broker 端（server.properties）</span></span><br><span class="line"><span class="attr">num.partitions</span>=<span class="string">12                        # 默认分区数</span></span><br><span class="line"><span class="attr">default.replication.factor</span>=<span class="string">3             # 默认副本数</span></span><br><span class="line"><span class="attr">min.insync.replicas</span>=<span class="string">2                    # 最小同步副本</span></span><br><span class="line"><span class="attr">unclean.leader.election.enable</span>=<span class="string">false     # 不允许脏选举</span></span><br><span class="line"><span class="attr">log.retention.hours</span>=<span class="string">168                  # 保留 7 天</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment"># Producer 端</span></span><br><span class="line"><span class="attr">acks</span>=<span class="string">all</span></span><br><span class="line"><span class="attr">retries</span>=<span class="string">3</span></span><br><span class="line"><span class="attr">enable.idempotence</span>=<span class="string">true</span></span><br><span class="line"><span class="attr">compression.type</span>=<span class="string">lz4                     # LZ4 性价比最高</span></span><br><span class="line"><span class="attr">batch.size</span>=<span class="string">16384</span></span><br><span class="line"><span class="attr">linger.ms</span>=<span class="string">5                              # 等待 5ms 攒批</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment"># Consumer 端</span></span><br><span class="line"><span class="attr">enable.auto.commit</span>=<span class="string">false</span></span><br><span class="line"><span class="attr">max.poll.records</span>=<span class="string">500                     # 一次拉取最大条数</span></span><br><span class="line"><span class="attr">session.timeout.ms</span>=<span class="string">30000                 # 超时判活</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Kafka = 分布式提交日志</span><br><span class="line"></span><br><span class="line">核心设计:</span><br><span class="line">  存储 ← 顺序写 + 分段 + 稀疏索引</span><br><span class="line">  速度 ← Page Cache + 零拷贝 + 批量 + 分区并行</span><br><span class="line">  可靠 ← 多副本 + ISR + acks + 幂等 + 事务</span><br><span class="line">  扩展 ← Partition → 任意扩展并发消费能力</span><br><span class="line"></span><br><span class="line">一句话: Kafka 把消息队列当成&quot;日志文件&quot;来存储，</span><br><span class="line">用磁盘顺序写的物理上限替代了内存的容量上限。</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="延伸阅读"><a href="#延伸阅读" class="headerlink" title="延伸阅读"></a>延伸阅读</h2><ul>
+<li><a href="/blog/2024/02/20/Mafka%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E5%AE%9E%E8%B7%B5/">Mafka 消息队列实践</a> — 美团 Mafka 在 Kafka 基础上的自研增强</li>
+<li><a href="/blog/2026/07/01/Redis%E5%B9%82%E7%AD%89%E6%8E%A7%E5%88%B6%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E8%AE%BE%E8%AE%A1/">Redis 幂等控制分布式锁设计</a> — 消息消费的幂等性保证</li>
+<li><a href="/blog/2024/03/05/%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/">限流设计与实现</a> — MQ 与限流协同削峰</li>
+</ul>
+]]></content>
+      <categories>
+        <category>中间件</category>
+      </categories>
+      <tags>
+        <tag>面试</tag>
+        <tag>MQ</tag>
+        <tag>Kafka</tag>
+        <tag>消息队列</tag>
+        <tag>分布式</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Redis 缓存三大问题详解——穿透、击穿、雪崩</title>
+    <url>/blog/2026/07/29/Redis%E7%BC%93%E5%AD%98%E4%B8%89%E5%A4%A7%E9%97%AE%E9%A2%98%E8%AF%A6%E8%A7%A3/</url>
+    <content><![CDATA[<h1 id="Redis-缓存三大问题详解——穿透、击穿、雪崩"><a href="#Redis-缓存三大问题详解——穿透、击穿、雪崩" class="headerlink" title="Redis 缓存三大问题详解——穿透、击穿、雪崩"></a>Redis 缓存三大问题详解——穿透、击穿、雪崩</h1><p>缓存穿透、缓存击穿、缓存雪崩是 Redis 面试中必问的三板斧。本文从定义、原因、方案到代码，一次性讲透。</p>
+<blockquote>
+<p>相关知识闭环：<a href="/blog/2026/07/17/Redis-Hash%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/">Redis Hash 扩容机制详解</a> · <a href="/blog/2026/07/01/Redis%E5%B9%82%E7%AD%89%E6%8E%A7%E5%88%B6%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E8%AE%BE%E8%AE%A1/">Redis 幂等控制分布式锁设计</a> · <a href="/blog/2024/05/20/SQL%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98/">SQL 优化实战</a> · <a href="/blog/2024/03/05/%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/">限流设计与实现</a></p>
+</blockquote>
+<hr>
+<h2 id="一、三个问题一句话区分"><a href="#一、三个问题一句话区分" class="headerlink" title="一、三个问题一句话区分"></a>一、三个问题一句话区分</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">┌──────────────────────────────────────────────────────────┐</span><br><span class="line">│                                                          │</span><br><span class="line">│  缓存穿透: 查的数据根本不存在 → 缓存形同虚设 → 全打 DB    │</span><br><span class="line">│  缓存击穿: 热点数据过期 → 大量请求同时打 DB              │</span><br><span class="line">│  缓存雪崩: 大量缓存同时过期 → DB 瞬间打爆               │</span><br><span class="line">│                                                          │</span><br><span class="line">└──────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="二、缓存穿透（Cache-Penetration）"><a href="#二、缓存穿透（Cache-Penetration）" class="headerlink" title="二、缓存穿透（Cache Penetration）"></a>二、缓存穿透（Cache Penetration）</h2><h3 id="2-1-什么情况"><a href="#2-1-什么情况" class="headerlink" title="2.1 什么情况"></a>2.1 什么情况</h3><p>用户请求的数据<strong>缓存和数据库中都不存在</strong>。比如请求 <code>id=-1</code> 的商品，每次请求都穿透缓存直击数据库。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">客户端 → 查缓存(miss) → 查DB(无记录) → 返回null</span><br><span class="line">    ↑                                    ↓</span><br><span class="line">    └──────── 下次还是 miss ──────────────┘</span><br><span class="line">    </span><br><span class="line">每次请求都打到 DB！</span><br></pre></td></tr></table></figure>
+
+<p><strong>原因</strong>：</p>
+<ul>
+<li>恶意攻击：用不存在的数据疯狂查询</li>
+<li>业务 bug：请求了不应该存在的 ID</li>
+<li>爬虫遍历：遍历 ID 范围扫描</li>
+</ul>
+<h3 id="2-2-解决方案"><a href="#2-2-解决方案" class="headerlink" title="2.2 解决方案"></a>2.2 解决方案</h3><h4 id="方案一：布隆过滤器（Bloom-Filter）⭐-推荐"><a href="#方案一：布隆过滤器（Bloom-Filter）⭐-推荐" class="headerlink" title="方案一：布隆过滤器（Bloom Filter）⭐ 推荐"></a>方案一：布隆过滤器（Bloom Filter）⭐ 推荐</h4><p>在缓存之前加一层布隆过滤器，判断 key 是否可能存在。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">布隆过滤器原理：</span><br><span class="line">- 用多个 Hash 函数对 key 计算</span><br><span class="line">- 将对应 bit 位置为 1</span><br><span class="line">- 查询时，只要有任何一个 bit 为 0 → key 一定不存在</span><br><span class="line">- 所有 bit 都为 1 → key 可能存在（有误判率）</span><br><span class="line"></span><br><span class="line">特性：</span><br><span class="line">- 说不存在，一定不存在 ✅</span><br><span class="line">- 说存在，可能不存在（误判）⚠️</span><br><span class="line">- 内存占用极小</span><br><span class="line">- 不能删除元素（可用布谷鸟过滤器替代）</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 使用 Guava BloomFilter</span></span><br><span class="line"><span class="keyword">import</span> com.google.common.hash.BloomFilter;</span><br><span class="line"><span class="keyword">import</span> com.google.common.hash.Funnels;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">BloomFilterDemo</span> &#123;</span><br><span class="line">    <span class="comment">// 预计插入 100 万条，误判率 0.01%</span></span><br><span class="line">    <span class="keyword">private</span> BloomFilter&lt;Long&gt; filter = BloomFilter.create(</span><br><span class="line">        Funnels.longFunnel(), <span class="number">1_000_000</span>, <span class="number">0.0001</span></span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 初始化：加载所有商品 ID</span></span><br><span class="line">    <span class="meta">@PostConstruct</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">init</span><span class="params">()</span> &#123;</span><br><span class="line">        List&lt;Long&gt; allIds = productDao.getAllIds();</span><br><span class="line">        allIds.forEach(filter::put);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> Product <span class="title function_">getProduct</span><span class="params">(Long id)</span> &#123;</span><br><span class="line">        <span class="comment">// 布隆过滤器判断：不存在直接返回</span></span><br><span class="line">        <span class="keyword">if</span> (!filter.mightContain(id)) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 可能存在 → 查缓存 → 查 DB</span></span><br><span class="line">        <span class="type">Product</span> <span class="variable">p</span> <span class="operator">=</span> redis.get(<span class="string">&quot;product:&quot;</span> + id);</span><br><span class="line">        <span class="keyword">if</span> (p == <span class="literal">null</span>) &#123;</span><br><span class="line">            p = db.get(id);</span><br><span class="line">            <span class="keyword">if</span> (p != <span class="literal">null</span>) redis.set(<span class="string">&quot;product:&quot;</span> + id, p);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> p;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="方案二：缓存空值"><a href="#方案二：缓存空值" class="headerlink" title="方案二：缓存空值"></a>方案二：缓存空值</h4><p>把”数据不存在”也缓存起来，设置较短的过期时间。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> Product <span class="title function_">getProduct</span><span class="params">(Long id)</span> &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">key</span> <span class="operator">=</span> <span class="string">&quot;product:&quot;</span> + id;</span><br><span class="line">    <span class="type">Product</span> <span class="variable">p</span> <span class="operator">=</span> redis.get(key);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (p != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="comment">// 判断是否为&quot;空值标记&quot;</span></span><br><span class="line">        <span class="keyword">if</span> (p.getId() == -<span class="number">1</span>) <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">return</span> p;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    p = db.get(id);</span><br><span class="line">    <span class="keyword">if</span> (p == <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="comment">// 缓存空对象，过期时间短（如 5 分钟）</span></span><br><span class="line">        redis.set(key, Product.EMPTY, <span class="number">5</span>, TimeUnit.MINUTES);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        redis.set(key, p, <span class="number">30</span>, TimeUnit.MINUTES);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> p;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>注意</strong>：大量不存在的 key 会撑爆 Redis 内存，所以过期时间要短，且最好配合布隆过滤器。</p>
+<h4 id="方案三：参数校验"><a href="#方案三：参数校验" class="headerlink" title="方案三：参数校验"></a>方案三：参数校验</h4><p>对请求参数做合法性校验，提前拦截非法请求：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (id == <span class="literal">null</span> || id &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">IllegalArgumentException</span>(<span class="string">&quot;非法商品ID&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 正则校验格式</span></span><br><span class="line"><span class="keyword">if</span> (!Pattern.matches(<span class="string">&quot;^[A-Z]&#123;2&#125;\\d&#123;10&#125;$&quot;</span>, orderNo)) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-方案对比"><a href="#2-3-方案对比" class="headerlink" title="2.3 方案对比"></a>2.3 方案对比</h3><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>缺点</th>
+<th>推荐度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>布隆过滤器</td>
+<td>内存小，精度可控</td>
+<td>有误判率，不能删除</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td>缓存空值</td>
+<td>实现简单</td>
+<td>大量 key 浪费内存</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td>参数校验</td>
+<td>无额外成本</td>
+<td>只能挡基础攻击</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>最佳实践：参数校验 + 布隆过滤器 + 缓存空值兜底，三层防护。</strong></p>
+</blockquote>
+<hr>
+<h2 id="三、缓存击穿（Cache-Breakdown）"><a href="#三、缓存击穿（Cache-Breakdown）" class="headerlink" title="三、缓存击穿（Cache Breakdown）"></a>三、缓存击穿（Cache Breakdown）</h2><h3 id="3-1-什么情况"><a href="#3-1-什么情况" class="headerlink" title="3.1 什么情况"></a>3.1 什么情况</h3><p>一个<strong>热点 key</strong> 在过期瞬间，大量并发请求同时打到数据库。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">热点 key &quot;product:100&quot; 过期时刻:</span><br><span class="line"></span><br><span class="line">请求1 ─→ cache miss ─→ DB 查询(耗时200ms) ─→ 写缓存</span><br><span class="line">请求2 ─→ cache miss ─→ DB 查询(耗时200ms) ─→ 写缓存</span><br><span class="line">请求3 ─→ cache miss ─→ DB 查询(耗时200ms) ─→ 写缓存</span><br><span class="line">  ...</span><br><span class="line">请求1000 ─→ cache miss ─→ DB 查询 ─→ 💥 DB 扛不住了</span><br><span class="line"></span><br><span class="line">问题本质：重建缓存期间，大量请求穿透</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-解决方案"><a href="#3-2-解决方案" class="headerlink" title="3.2 解决方案"></a>3.2 解决方案</h3><h4 id="方案一：互斥锁（Mutex-Lock）⭐-最常用"><a href="#方案一：互斥锁（Mutex-Lock）⭐-最常用" class="headerlink" title="方案一：互斥锁（Mutex Lock）⭐ 最常用"></a>方案一：互斥锁（Mutex Lock）⭐ 最常用</h4><p>第一个请求去查 DB 并加锁，其他请求等待锁释放后直接读缓存。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> Product <span class="title function_">getProduct</span><span class="params">(Long id)</span> &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">key</span> <span class="operator">=</span> <span class="string">&quot;product:&quot;</span> + id;</span><br><span class="line">    <span class="type">Product</span> <span class="variable">p</span> <span class="operator">=</span> redis.get(key);</span><br><span class="line">    <span class="keyword">if</span> (p != <span class="literal">null</span>) <span class="keyword">return</span> p;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 缓存未命中 → 加分布式锁</span></span><br><span class="line">    <span class="type">String</span> <span class="variable">lockKey</span> <span class="operator">=</span> <span class="string">&quot;lock:product:&quot;</span> + id;</span><br><span class="line">    <span class="type">String</span> <span class="variable">lockValue</span> <span class="operator">=</span> UUID.randomUUID().toString();</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">// 尝试获取锁，超时 10 秒</span></span><br><span class="line">        <span class="type">boolean</span> <span class="variable">locked</span> <span class="operator">=</span> redis.setIfAbsent(lockKey, lockValue, <span class="number">10</span>, TimeUnit.SECONDS);</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">if</span> (locked) &#123;</span><br><span class="line">            <span class="comment">// 获取锁成功 → 查 DB 重建缓存</span></span><br><span class="line">            p = db.get(id);</span><br><span class="line">            <span class="keyword">if</span> (p != <span class="literal">null</span>) &#123;</span><br><span class="line">                redis.set(key, p, <span class="number">30</span>, TimeUnit.MINUTES);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 获取锁失败 → 休眠后重试读缓存</span></span><br><span class="line">            Thread.sleep(<span class="number">50</span>);</span><br><span class="line">            <span class="keyword">return</span> getProduct(id);  <span class="comment">// 递归重试</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">        Thread.currentThread().interrupt();</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="comment">// 用 Lua 脚本原子性判断并释放锁（防止误删）</span></span><br><span class="line">        <span class="keyword">if</span> (lockValue.equals(redis.get(lockKey))) &#123;</span><br><span class="line">            redis.delete(lockKey);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> p;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="方案二：逻辑过期（不设物理过期）"><a href="#方案二：逻辑过期（不设物理过期）" class="headerlink" title="方案二：逻辑过期（不设物理过期）"></a>方案二：逻辑过期（不设物理过期）</h4><p>缓存不设置过期时间，而是在 value 中存储”逻辑过期时间”。后台异步更新。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Data</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">CacheData</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> Product data;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">long</span> expireAt;  <span class="comment">// 逻辑过期时间戳</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> Product <span class="title function_">getProduct</span><span class="params">(Long id)</span> &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">key</span> <span class="operator">=</span> <span class="string">&quot;product:&quot;</span> + id;</span><br><span class="line">    <span class="type">CacheData</span> <span class="variable">cacheData</span> <span class="operator">=</span> redis.get(key);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (cacheData == <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="comment">// 缓存不存在 → 加锁查 DB 并写入</span></span><br><span class="line">        <span class="keyword">return</span> rebuildCache(id);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 缓存存在，检查是否逻辑过期</span></span><br><span class="line">    <span class="keyword">if</span> (cacheData.getExpireAt() &gt; System.currentTimeMillis()) &#123;</span><br><span class="line">        <span class="keyword">return</span> cacheData.getData();  <span class="comment">// 未过期，直接返回</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 逻辑已过期 → 先返回旧数据，异步更新</span></span><br><span class="line">    <span class="type">String</span> <span class="variable">lockKey</span> <span class="operator">=</span> <span class="string">&quot;lock:product:&quot;</span> + id;</span><br><span class="line">    <span class="keyword">if</span> (redis.setIfAbsent(lockKey, <span class="string">&quot;1&quot;</span>, <span class="number">10</span>, TimeUnit.SECONDS)) &#123;</span><br><span class="line">        <span class="comment">// 获取锁 → 开新线程异步重建</span></span><br><span class="line">        threadPool.execute(() -&gt; &#123;</span><br><span class="line">            <span class="type">Product</span> <span class="variable">p</span> <span class="operator">=</span> db.get(id);</span><br><span class="line">            <span class="type">CacheData</span> <span class="variable">newData</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">CacheData</span>();</span><br><span class="line">            newData.setData(p);</span><br><span class="line">            newData.setExpireAt(System.currentTimeMillis() + <span class="number">30</span> * <span class="number">60</span> * <span class="number">1000</span>);</span><br><span class="line">            redis.set(key, newData);</span><br><span class="line">            redis.delete(lockKey);</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 不管是否拿到锁，都返回旧数据（可用就行）</span></span><br><span class="line">    <span class="keyword">return</span> cacheData.getData();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="方案三：永不过期"><a href="#方案三：永不过期" class="headerlink" title="方案三：永不过期"></a>方案三：永不过期</h4><p>对于特别核心的热点数据（如秒杀商品库存），干脆不设过期时间，通过<strong>双写 + 更新通知</strong>来更新。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 写 DB 成功后同步更新缓存</span></span><br><span class="line"><span class="meta">@Transactional</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">updateProduct</span><span class="params">(Product p)</span> &#123;</span><br><span class="line">    db.update(p);                 <span class="comment">// 更新 DB</span></span><br><span class="line">    redis.set(<span class="string">&quot;product:&quot;</span> + p.getId(), p);  <span class="comment">// 更新缓存（不设过期）</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-3-方案对比"><a href="#3-3-方案对比" class="headerlink" title="3.3 方案对比"></a>3.3 方案对比</h3><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>互斥锁</td>
+<td>简单可靠，一致性强</td>
+<td>可能短暂阻塞</td>
+</tr>
+<tr>
+<td>逻辑过期</td>
+<td>高可用，不阻塞</td>
+<td>短暂数据不一致</td>
+</tr>
+<tr>
+<td>永不过期</td>
+<td>最简单</td>
+<td>需要保证 DB 和缓存一致性</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>推荐：核心热点数据用逻辑过期 + 互斥锁组合，普通数据用互斥锁。</strong></p>
+</blockquote>
+<hr>
+<h2 id="四、缓存雪崩（Cache-Avalanche）"><a href="#四、缓存雪崩（Cache-Avalanche）" class="headerlink" title="四、缓存雪崩（Cache Avalanche）"></a>四、缓存雪崩（Cache Avalanche）</h2><h3 id="4-1-什么情况"><a href="#4-1-什么情况" class="headerlink" title="4.1 什么情况"></a>4.1 什么情况</h3><p><strong>大量缓存 key 在同一时间集中过期</strong>，或者 Redis 宕机，所有请求直接打到 DB。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">场景 1：批量过期</span><br><span class="line">同一时间设置了 1000 个 key，TTL 都是 30 分钟</span><br><span class="line">30 分钟后 → 1000 个 key 同时过期 → DB 瞬间承受 1000 倍的流量</span><br><span class="line"></span><br><span class="line">场景 2：Redis 宕机</span><br><span class="line">Redis 挂掉 → 所有请求打到 DB → DB 被打挂 → 整个系统雪崩</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-2-解决方案"><a href="#4-2-解决方案" class="headerlink" title="4.2 解决方案"></a>4.2 解决方案</h3><h4 id="方案一：过期时间加随机值（防止同时过期）⭐"><a href="#方案一：过期时间加随机值（防止同时过期）⭐" class="headerlink" title="方案一：过期时间加随机值（防止同时过期）⭐"></a>方案一：过期时间加随机值（防止同时过期）⭐</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// ❌ 所有 key 同一时间过期</span></span><br><span class="line">redis.set(key, value, <span class="number">30</span>, TimeUnit.MINUTES);</span><br><span class="line"></span><br><span class="line"><span class="comment">// ✅ 过期时间 = 基础时间 + 随机偏移</span></span><br><span class="line"><span class="type">int</span> <span class="variable">baseMinutes</span> <span class="operator">=</span> <span class="number">30</span>;</span><br><span class="line"><span class="type">int</span> <span class="variable">randomMinutes</span> <span class="operator">=</span> ThreadLocalRandom.current().nextInt(<span class="number">10</span>); <span class="comment">// 0~10 分钟随机</span></span><br><span class="line">redis.set(key, value, baseMinutes + randomMinutes, TimeUnit.MINUTES);</span><br></pre></td></tr></table></figure>
+
+<p><strong>原理</strong>：让 key 的过期时间分散开，避免集中过期。</p>
+<h4 id="方案二：多级缓存"><a href="#方案二：多级缓存" class="headerlink" title="方案二：多级缓存"></a>方案二：多级缓存</h4><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">请求 → 本地缓存(Caffeine) → Redis → DB</span><br><span class="line">         ↑ 命中率高  ↑ 分布式   ↑ 兜底</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// Caffeine 本地缓存 + Redis 分布式缓存</span></span><br><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MultiLevelCache</span> &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">private</span> Cache&lt;String, Object&gt; localCache = Caffeine.newBuilder()</span><br><span class="line">        .maximumSize(<span class="number">10_000</span>)</span><br><span class="line">        .expireAfterWrite(<span class="number">5</span>, TimeUnit.MINUTES)</span><br><span class="line">        .build();</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> Product <span class="title function_">getProduct</span><span class="params">(Long id)</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">key</span> <span class="operator">=</span> <span class="string">&quot;product:&quot;</span> + id;</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// L1: 本地缓存</span></span><br><span class="line">        <span class="type">Product</span> <span class="variable">p</span> <span class="operator">=</span> (Product) localCache.getIfPresent(key);</span><br><span class="line">        <span class="keyword">if</span> (p != <span class="literal">null</span>) <span class="keyword">return</span> p;</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// L2: Redis</span></span><br><span class="line">        p = redis.get(key);</span><br><span class="line">        <span class="keyword">if</span> (p != <span class="literal">null</span>) &#123;</span><br><span class="line">            localCache.put(key, p);</span><br><span class="line">            <span class="keyword">return</span> p;</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// L3: DB</span></span><br><span class="line">        p = db.get(id);</span><br><span class="line">        <span class="keyword">if</span> (p != <span class="literal">null</span>) &#123;</span><br><span class="line">            redis.set(key, p, <span class="number">30</span> + randomMinutes(), TimeUnit.MINUTES);</span><br><span class="line">            localCache.put(key, p);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> p;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="方案三：限流-熔断兜底"><a href="#方案三：限流-熔断兜底" class="headerlink" title="方案三：限流 + 熔断兜底"></a>方案三：限流 + 熔断兜底</h4><p>当 Redis 不可用时，触发限流和熔断保护 DB：</p>
+<blockquote>
+<p>限流实战方案参考：<a href="/blog/2024/03/05/%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/">限流设计与实现</a></p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 使用 Sentinel 做熔断降级</span></span><br><span class="line"><span class="meta">@SentinelResource(</span></span><br><span class="line"><span class="meta">    value = &quot;getProduct&quot;,</span></span><br><span class="line"><span class="meta">    fallback = &quot;getProductFallback&quot;,</span></span><br><span class="line"><span class="meta">    blockHandler = &quot;getProductBlockHandler&quot;</span></span><br><span class="line"><span class="meta">)</span></span><br><span class="line"><span class="keyword">public</span> Product <span class="title function_">getProduct</span><span class="params">(Long id)</span> &#123;</span><br><span class="line">    <span class="comment">// 正常路径</span></span><br><span class="line">    <span class="type">Product</span> <span class="variable">p</span> <span class="operator">=</span> redis.get(<span class="string">&quot;product:&quot;</span> + id);</span><br><span class="line">    <span class="keyword">if</span> (p != <span class="literal">null</span>) <span class="keyword">return</span> p;</span><br><span class="line">    <span class="keyword">return</span> db.get(id);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 降级方法：返回兜底数据</span></span><br><span class="line"><span class="keyword">public</span> Product <span class="title function_">getProductFallback</span><span class="params">(Long id, Throwable e)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> Product.DEFAULT;  <span class="comment">// 返回默认商品信息</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="方案四：Redis-高可用"><a href="#方案四：Redis-高可用" class="headerlink" title="方案四：Redis 高可用"></a>方案四：Redis 高可用</h4><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Redis Sentinel / Cluster</span><br><span class="line">├── 主从复制（读写分离）</span><br><span class="line">├── 哨兵模式（自动故障转移）</span><br><span class="line">└── Cluster 集群（数据分片）</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-方案对比"><a href="#4-3-方案对比" class="headerlink" title="4.3 方案对比"></a>4.3 方案对比</h3><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>防止场景</th>
+<th>实施难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>随机过期时间</td>
+<td>批量过期</td>
+<td>⭐ 极简</td>
+</tr>
+<tr>
+<td>多级缓存</td>
+<td>Redis 宕机 + 批量过期</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td>限流熔断</td>
+<td>Redis 不可用</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td>Redis 高可用</td>
+<td>Redis 宕机</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>推荐组合：随机过期 + 多级缓存 + Redis 高可用。</strong></p>
+</blockquote>
+<hr>
+<h2 id="五、进阶：热点数据发现与处理"><a href="#五、进阶：热点数据发现与处理" class="headerlink" title="五、进阶：热点数据发现与处理"></a>五、进阶：热点数据发现与处理</h2><h3 id="5-1-如何发现热点-Key"><a href="#5-1-如何发现热点-Key" class="headerlink" title="5.1 如何发现热点 Key"></a>5.1 如何发现热点 Key</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 方案1：客户端统计（滑动窗口计数）</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">HotKeyDetector</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> Map&lt;String, AtomicLong&gt; counter = <span class="keyword">new</span> <span class="title class_">ConcurrentHashMap</span>&lt;&gt;();</span><br><span class="line">    <span class="keyword">private</span> <span class="type">ScheduledExecutorService</span> <span class="variable">scheduler</span> <span class="operator">=</span> Executors.newScheduledThreadPool(<span class="number">1</span>);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">record</span><span class="params">(String key)</span> &#123;</span><br><span class="line">        counter.computeIfAbsent(key, k -&gt; <span class="keyword">new</span> <span class="title class_">AtomicLong</span>()).incrementAndGet();</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 每秒统计一次，超过阈值即为热点</span></span><br><span class="line">    <span class="meta">@PostConstruct</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">start</span><span class="params">()</span> &#123;</span><br><span class="line">        scheduler.scheduleAtFixedRate(() -&gt; &#123;</span><br><span class="line">            counter.forEach((key, count) -&gt; &#123;</span><br><span class="line">                <span class="keyword">if</span> (count.get() &gt; <span class="number">1000</span>) &#123;</span><br><span class="line">                    <span class="comment">// 标记为热点 key</span></span><br><span class="line">                    redis.set(<span class="string">&quot;hot:keys:&quot;</span> + key, <span class="string">&quot;1&quot;</span>, <span class="number">60</span>, TimeUnit.SECONDS);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;);</span><br><span class="line">            counter.clear();</span><br><span class="line">        &#125;, <span class="number">1</span>, <span class="number">1</span>, TimeUnit.SECONDS);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-热点-Key-的多级缓存处理"><a href="#5-2-热点-Key-的多级缓存处理" class="headerlink" title="5.2 热点 Key 的多级缓存处理"></a>5.2 热点 Key 的多级缓存处理</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">热点 key 的处理链路：</span><br><span class="line"></span><br><span class="line">客户端请求</span><br><span class="line">    ↓</span><br><span class="line">服务本地缓存 (Caffeine, 5分钟有效期)</span><br><span class="line">    ↓ miss</span><br><span class="line">Redis Cluster (由多个分片分担)</span><br><span class="line">    ↓ miss</span><br><span class="line">DB (限流保护, 最大 QPS 1000)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="六、三个问题对比总结"><a href="#六、三个问题对比总结" class="headerlink" title="六、三个问题对比总结"></a>六、三个问题对比总结</h2><table>
+<thead>
+<tr>
+<th></th>
+<th>缓存穿透</th>
+<th>缓存击穿</th>
+<th>缓存雪崩</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>现象</strong></td>
+<td>请求不存在的 key</td>
+<td>一个热点 key 过期</td>
+<td>大量 key 同时过期</td>
+</tr>
+<tr>
+<td><strong>打击面</strong></td>
+<td>每次都不命中</td>
+<td>过期瞬间集中</td>
+<td>全面冲击</td>
+</tr>
+<tr>
+<td><strong>数据不存在?</strong></td>
+<td>✅ 是（不存在）</td>
+<td>❌ 否（存在但过期）</td>
+<td>❌ 否（同时过期）</td>
+</tr>
+<tr>
+<td><strong>核心方案</strong></td>
+<td>布隆过滤器 + 空值缓存</td>
+<td>互斥锁 + 逻辑过期</td>
+<td>随机 TTL + 多级缓存</td>
+</tr>
+<tr>
+<td><strong>严重程度</strong></td>
+<td>中</td>
+<td>高</td>
+<td>极高</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="七、面试回答模板"><a href="#七、面试回答模板" class="headerlink" title="七、面试回答模板"></a>七、面试回答模板</h2><blockquote>
+<p><strong>面试官：”说说缓存穿透、击穿、雪崩的区别和处理方式”</strong></p>
+</blockquote>
+<p>穿透是请求既不命中缓存也不命中数据库，用布隆过滤器和缓存空值解决；击穿是一个热点 key 过期瞬间大量并发打到 DB，用互斥锁或逻辑过期解决；雪崩是大量 key 同时过期或 Redis 宕机，用随机过期时间、多级缓存、限流熔断解决。</p>
+<p>三者严重程度递增：雪崩 &gt; 击穿 &gt; 穿透。穿透是”数据本来就不存在”，击穿是”热点消失了一瞬间”，雪崩是”整个缓存层坍塌”。</p>
+<p>生产上建议的组合：穿透层用布隆过滤器 + 参数校验；击穿用互斥锁；雪崩用随机过期 + 本地缓存 + Redis 高可用。</p>
+<hr>
+<h2 id="八、延伸阅读"><a href="#八、延伸阅读" class="headerlink" title="八、延伸阅读"></a>八、延伸阅读</h2><ul>
+<li><a href="/blog/2026/07/17/Redis-Hash%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/">Redis Hash 扩容机制详解</a> — 理解了数据结构才能更好理解缓存性能</li>
+<li><a href="/blog/2026/07/01/Redis%E5%B9%82%E7%AD%89%E6%8E%A7%E5%88%B6%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E8%AE%BE%E8%AE%A1/">Redis 幂等控制分布式锁设计</a> — 互斥锁的完整实现</li>
+<li><a href="/blog/2024/05/20/SQL%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98/">SQL 优化实战</a> — 数据库是缓存最后的防线</li>
+<li><a href="/blog/2024/03/05/%E9%99%90%E6%B5%81%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/">限流设计与实现</a> — 当缓存不可用，限流是保护 DB 的最后一道墙</li>
+</ul>
+]]></content>
+      <categories>
+        <category>后端</category>
+      </categories>
+      <tags>
+        <tag>面试</tag>
+        <tag>性能优化</tag>
+        <tag>Redis</tag>
+        <tag>系统设计</tag>
+        <tag>缓存</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL 锁机制详解——行锁、间隙锁、临键锁、意向锁与死锁</title>
+    <url>/blog/2026/07/29/MySQL%E9%94%81%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/</url>
+    <content><![CDATA[<h1 id="MySQL-锁机制详解"><a href="#MySQL-锁机制详解" class="headerlink" title="MySQL 锁机制详解"></a>MySQL 锁机制详解</h1><p>MySQL InnoDB 的锁机制是理解事务隔离、MVCC、死锁和并发性能的基础。本文从底层原理出发，系统讲透 InnoDB 的各种锁。</p>
+<blockquote>
+<p>相关知识闭环：<a href="/blog/2026/07/01/%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB%E6%80%A7%E5%8E%9F%E7%90%86/">事务隔离性的原理</a> · <a href="/blog/2026/07/28/MVCC%E5%BA%95%E5%B1%82%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/">MVCC 底层原理详解</a> · <a href="/blog/2024/02/01/%E6%AD%BB%E9%94%81%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3%E6%8C%87%E5%8D%97/">死锁问题解决指南</a> · <a href="/blog/2024/05/20/SQL%E4%BC%98%E5%8C%96%E5%AE%9E%E6%88%98/">SQL 优化实战</a></p>
+</blockquote>
+<hr>
+<h2 id="一、锁的分类全景"><a href="#一、锁的分类全景" class="headerlink" title="一、锁的分类全景"></a>一、锁的分类全景</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">InnoDB 锁体系</span><br><span class="line">├── 按粒度</span><br><span class="line">│   ├── 表锁 (Table Lock)</span><br><span class="line">│   ├── 行锁 (Record Lock)</span><br><span class="line">│   ├── 间隙锁 (Gap Lock)</span><br><span class="line">│   └── 临键锁 (Next-Key Lock) = Record Lock + Gap Lock</span><br><span class="line">├── 按模式</span><br><span class="line">│   ├── 共享锁 (S Lock)</span><br><span class="line">│   ├── 排他锁 (X Lock)</span><br><span class="line">│   └── 意向锁 (IS / IX Lock)</span><br><span class="line">└── 按算法</span><br><span class="line">    ├── 记录锁 (Record Lock)</span><br><span class="line">    ├── 间隙锁 (Gap Lock)</span><br><span class="line">    └── 临键锁 (Next-Key Lock)</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="二、行锁（Record-Lock）"><a href="#二、行锁（Record-Lock）" class="headerlink" title="二、行锁（Record Lock）"></a>二、行锁（Record Lock）</h2><h3 id="2-1-基本概念"><a href="#2-1-基本概念" class="headerlink" title="2.1 基本概念"></a>2.1 基本概念</h3><p>行锁锁定的是<strong>索引记录</strong>，不是数据行本身。如果某条 SQL 没走索引，行锁会退化为表锁！</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="comment">-- 对 id=1 的索引记录加 X 锁</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> account <span class="keyword">WHERE</span> id <span class="operator">=</span> <span class="number">1</span> <span class="keyword">FOR</span> <span class="keyword">UPDATE</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 对 id IN (1,2,3) 的三条索引记录各加 X 锁</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> account <span class="keyword">WHERE</span> id <span class="keyword">IN</span> (<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>) <span class="keyword">FOR</span> <span class="keyword">UPDATE</span>;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-行锁的两种模式"><a href="#2-2-行锁的两种模式" class="headerlink" title="2.2 行锁的两种模式"></a>2.2 行锁的两种模式</h3><table>
+<thead>
+<tr>
+<th>锁类型</th>
+<th>简称</th>
+<th>互斥关系</th>
+<th>加锁语句</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>共享锁</strong></td>
+<td>S 锁</td>
+<td>S 与 S 兼容，S 与 X 互斥</td>
+<td><code>SELECT ... LOCK IN SHARE MODE</code></td>
+</tr>
+<tr>
+<td><strong>排他锁</strong></td>
+<td>X 锁</td>
+<td>X 与任何锁互斥</td>
+<td><code>SELECT ... FOR UPDATE</code> &#x2F; <code>UPDATE</code> &#x2F; <code>DELETE</code> &#x2F; <code>INSERT</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="comment">-- 事务 T1: 加 S 锁</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> account <span class="keyword">WHERE</span> id <span class="operator">=</span> <span class="number">1</span> LOCK <span class="keyword">IN</span> SHARE MODE;</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 事务 T2: 加 S 锁 → ✅ 可以（S 与 S 兼容）</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> account <span class="keyword">WHERE</span> id <span class="operator">=</span> <span class="number">1</span> LOCK <span class="keyword">IN</span> SHARE MODE;</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 事务 T3: 加 X 锁 → ❌ 阻塞（S 与 X 互斥）</span></span><br><span class="line"><span class="keyword">UPDATE</span> account <span class="keyword">SET</span> balance <span class="operator">=</span> <span class="number">100</span> <span class="keyword">WHERE</span> id <span class="operator">=</span> <span class="number">1</span>;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-行锁加在索引上"><a href="#2-3-行锁加在索引上" class="headerlink" title="2.3 行锁加在索引上"></a>2.3 行锁加在索引上</h3><p><strong>关键原则：InnoDB 的行锁是加在索引上的。如果没走索引，行锁退化为表锁！</strong></p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="comment">-- ✅ 命中索引，只锁一行</span></span><br><span class="line"><span class="keyword">UPDATE</span> account <span class="keyword">SET</span> balance <span class="operator">=</span> <span class="number">100</span> <span class="keyword">WHERE</span> id <span class="operator">=</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">-- ❌ name 没有索引 → 全表扫描 → 表锁！</span></span><br><span class="line"><span class="keyword">UPDATE</span> account <span class="keyword">SET</span> balance <span class="operator">=</span> <span class="number">100</span> <span class="keyword">WHERE</span> name <span class="operator">=</span> <span class="string">&#x27;张三&#x27;</span>;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-4-两阶段锁协议"><a href="#2-4-两阶段锁协议" class="headerlink" title="2.4 两阶段锁协议"></a>2.4 两阶段锁协议</h3><p>InnoDB 的行锁在<strong>事务提交时</strong>才释放，不是语句执行完就释放。这是防止并发写冲突的基础。</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">BEGIN</span>;</span><br><span class="line"><span class="keyword">UPDATE</span> account <span class="keyword">SET</span> balance <span class="operator">=</span> <span class="number">800</span> <span class="keyword">WHERE</span> id <span class="operator">=</span> <span class="number">1</span>;  <span class="comment">-- 加 X 锁</span></span><br><span class="line"><span class="comment">-- X 锁此时还持有</span></span><br><span class="line"><span class="keyword">UPDATE</span> account <span class="keyword">SET</span> balance <span class="operator">=</span> <span class="number">200</span> <span class="keyword">WHERE</span> id <span class="operator">=</span> <span class="number">2</span>;  <span class="comment">-- 再加 X 锁</span></span><br><span class="line"><span class="keyword">COMMIT</span>;  <span class="comment">-- 所有锁在此释放</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="三、间隙锁（Gap-Lock）"><a href="#三、间隙锁（Gap-Lock）" class="headerlink" title="三、间隙锁（Gap Lock）"></a>三、间隙锁（Gap Lock）</h2><h3 id="3-1-解决的问题：幻读"><a href="#3-1-解决的问题：幻读" class="headerlink" title="3.1 解决的问题：幻读"></a>3.1 解决的问题：幻读</h3><p>间隙锁是 InnoDB 在 <strong>RR（可重复读）</strong> 级别下的独特能力，用于防止<strong>幻读（Phantom Read）</strong>。</p>
+<blockquote>
+<p>了解幻读的完整背景，参考：<a href="/blog/2026/07/01/%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB%E6%80%A7%E5%8E%9F%E7%90%86/">事务隔离性的原理</a></p>
+</blockquote>
+<h3 id="3-2-间隙锁的范围"><a href="#3-2-间隙锁的范围" class="headerlink" title="3.2 间隙锁的范围"></a>3.2 间隙锁的范围</h3><p>假设现有记录 <code>id = [5, 10, 15]</code>，间隙锁的范围是：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">(-∞, 5)   → 间隙 1</span><br><span class="line">(5, 10)   → 间隙 2</span><br><span class="line">(10, 15)  → 间隙 3</span><br><span class="line">(15, +∞)  → 间隙 4</span><br><span class="line"></span><br><span class="line">执行: SELECT * FROM t WHERE id BETWEEN 7 AND 12 FOR UPDATE;</span><br><span class="line"></span><br><span class="line">锁住:</span><br><span class="line">  - Recrod Lock: id=10（已有的记录）</span><br><span class="line">  - Gap Lock: (5,10) 和 (10,15) 两个间隙</span><br><span class="line"></span><br><span class="line">效果: 其他事务无法在 6~14 之间 INSERT 任何数据</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><strong>关键</strong>：间隙锁锁定的是”记录之间的空隙”，阻止其他事务在空隙中 INSERT，从而防止幻读。</p>
+</blockquote>
+<h3 id="3-3-间隙锁的特点"><a href="#3-3-间隙锁的特点" class="headerlink" title="3.3 间隙锁的特点"></a>3.3 间隙锁的特点</h3><table>
+<thead>
+<tr>
+<th>特点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>只在 RR 级别</strong></td>
+<td>RC 级别没有间隙锁</td>
+</tr>
+<tr>
+<td><strong>只阻止 INSERT</strong></td>
+<td>不阻止 UPDATE&#x2F;DELETE</td>
+</tr>
+<tr>
+<td><strong>S 锁和 X 锁的 Gap Lock 不互斥</strong></td>
+<td>间隙锁之间总是兼容的</td>
+</tr>
+<tr>
+<td><strong>唯一索引等值查询不会加 Gap Lock</strong></td>
+<td>唯一索引已经保证无幻读</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="四、临键锁（Next-Key-Lock）"><a href="#四、临键锁（Next-Key-Lock）" class="headerlink" title="四、临键锁（Next-Key Lock）"></a>四、临键锁（Next-Key Lock）</h2><h3 id="4-1-概念"><a href="#4-1-概念" class="headerlink" title="4.1 概念"></a>4.1 概念</h3><p><strong>Next-Key Lock &#x3D; Record Lock + Gap Lock</strong>，锁定一个索引记录及其之前的间隙。</p>
+<p>这是 InnoDB <strong>默认的行锁算法</strong>。</p>
+<h3 id="4-2-范围示意"><a href="#4-2-范围示意" class="headerlink" title="4.2 范围示意"></a>4.2 范围示意</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">记录: [5]  [10]  [15]  [20]</span><br><span class="line"></span><br><span class="line">id=10 的 Next-Key Lock = GapLock(5,10]  +  RecordLock(10)</span><br><span class="line">                       ↑ 左开右闭        ↑ 精确锁定</span><br><span class="line">                       </span><br><span class="line">实际锁定范围: (5, 10] = &#123;6,7,8,9,10&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-不同查询的加锁行为"><a href="#4-3-不同查询的加锁行为" class="headerlink" title="4.3 不同查询的加锁行为"></a>4.3 不同查询的加锁行为</h3><figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="comment">-- 假设记录: id = [5, 10, 15, 20]</span></span><br><span class="line"></span><br><span class="line"><span class="comment">-- ① 等值查询唯一索引 id=10</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> id <span class="operator">=</span> <span class="number">10</span> <span class="keyword">FOR</span> <span class="keyword">UPDATE</span>;</span><br><span class="line"><span class="comment">-- 只加 Record Lock(id=10)，不加 Gap Lock ✅</span></span><br><span class="line"></span><br><span class="line"><span class="comment">-- ② 等值查询普通索引 age=25（非唯一）</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> age <span class="operator">=</span> <span class="number">25</span> <span class="keyword">FOR</span> <span class="keyword">UPDATE</span>;</span><br><span class="line"><span class="comment">-- 加 Next-Key Lock</span></span><br><span class="line"><span class="comment">-- 锁住: GapLock(20,25] + RecordLock(25) + GapLock(25,30)</span></span><br><span class="line"></span><br><span class="line"><span class="comment">-- ③ 范围查询 id &gt; 10</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> id <span class="operator">&gt;</span> <span class="number">10</span> <span class="keyword">FOR</span> <span class="keyword">UPDATE</span>;</span><br><span class="line"><span class="comment">-- 加 Next-Key Lock: (10,15], (15,20], (20,+∞)</span></span><br><span class="line"></span><br><span class="line"><span class="comment">-- ④ 范围查询 id &gt;= 10</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> id <span class="operator">&gt;=</span> <span class="number">10</span> <span class="keyword">FOR</span> <span class="keyword">UPDATE</span>;</span><br><span class="line"><span class="comment">-- 加 Record Lock(10) + Next-Key Lock(10,15], (15,20], (20,+∞)</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-4-优化：唯一索引等值查询降级"><a href="#4-4-优化：唯一索引等值查询降级" class="headerlink" title="4.4 优化：唯一索引等值查询降级"></a>4.4 优化：唯一索引等值查询降级</h3><figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="comment">-- 主键 id=10 存在 → 降级为 Record Lock</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> id <span class="operator">=</span> <span class="number">10</span> <span class="keyword">FOR</span> <span class="keyword">UPDATE</span>;</span><br><span class="line"><span class="comment">-- 只锁 id=10，不锁间隙</span></span><br><span class="line"></span><br><span class="line"><span class="comment">-- 主键 id=12 不存在 → 加 Gap Lock</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> id <span class="operator">=</span> <span class="number">12</span> <span class="keyword">FOR</span> <span class="keyword">UPDATE</span>;</span><br><span class="line"><span class="comment">-- 锁住 (10,15) 间隙，防止插入 id=12</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="五、意向锁（Intention-Lock）"><a href="#五、意向锁（Intention-Lock）" class="headerlink" title="五、意向锁（Intention Lock）"></a>五、意向锁（Intention Lock）</h2><h3 id="5-1-为什么需要意向锁"><a href="#5-1-为什么需要意向锁" class="headerlink" title="5.1 为什么需要意向锁"></a>5.1 为什么需要意向锁</h3><p>疑问：InnoDB 要给某行加 X 锁，怎么判断表级是否已有 S 锁？</p>
+<ul>
+<li>没有意向锁：需要遍历所有行检查 → 太慢</li>
+<li>有意向锁：表级 mark 一下即可 → O(1)</li>
+</ul>
+<h3 id="5-2-IS-锁与-IX-锁"><a href="#5-2-IS-锁与-IX-锁" class="headerlink" title="5.2 IS 锁与 IX 锁"></a>5.2 IS 锁与 IX 锁</h3><table>
+<thead>
+<tr>
+<th>锁类型</th>
+<th>含义</th>
+<th>获取方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>IS（意向共享锁）</strong></td>
+<td>事务打算给某些行加 S 锁</td>
+<td><code>SELECT ... LOCK IN SHARE MODE</code> 时自动加</td>
+</tr>
+<tr>
+<td><strong>IX（意向排他锁）</strong></td>
+<td>事务打算给某些行加 X 锁</td>
+<td><code>SELECT ... FOR UPDATE</code> 时自动加</td>
+</tr>
+</tbody></table>
+<h3 id="5-3-表级锁兼容矩阵"><a href="#5-3-表级锁兼容矩阵" class="headerlink" title="5.3 表级锁兼容矩阵"></a>5.3 表级锁兼容矩阵</h3><table>
+<thead>
+<tr>
+<th></th>
+<th>IS</th>
+<th>IX</th>
+<th>S</th>
+<th>X</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>IS</strong></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>IX</strong></td>
+<td>✅</td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>S</strong></td>
+<td>✅</td>
+<td>❌</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>X</strong></td>
+<td>❌</td>
+<td>❌</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>意向锁之间总是兼容的（IS&#x2F;IX），因为不同行之间的锁不冲突。</p>
+</blockquote>
+<hr>
+<h2 id="六、锁的监控与排查"><a href="#六、锁的监控与排查" class="headerlink" title="六、锁的监控与排查"></a>六、锁的监控与排查</h2><h3 id="6-1-查看当前锁状态"><a href="#6-1-查看当前锁状态" class="headerlink" title="6.1 查看当前锁状态"></a>6.1 查看当前锁状态</h3><figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="comment">-- MySQL 8.0+ 推荐方式</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> performance_schema.data_locks;</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 查看当前锁等待</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> performance_schema.data_lock_waits;</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 查看最近一次死锁</span></span><br><span class="line"><span class="keyword">SHOW</span> ENGINE INNODB STATUS\G</span><br><span class="line"><span class="comment">-- 搜索 &quot;LATEST DETECTED DEADLOCK&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="6-2-锁等待超时"><a href="#6-2-锁等待超时" class="headerlink" title="6.2 锁等待超时"></a>6.2 锁等待超时</h3><figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="comment">-- 查看锁等待超时时间（默认 50 秒）</span></span><br><span class="line"><span class="keyword">SHOW</span> VARIABLES <span class="keyword">LIKE</span> <span class="string">&#x27;innodb_lock_wait_timeout&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 查看当前被阻塞的事务</span></span><br><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> information_schema.INNODB_TRX;</span><br></pre></td></tr></table></figure>
+
+<h3 id="6-3-排查锁等待的步骤"><a href="#6-3-排查锁等待的步骤" class="headerlink" title="6.3 排查锁等待的步骤"></a>6.3 排查锁等待的步骤</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1. 找到等待线程</span><br><span class="line">   SELECT * FROM sys.innodb_lock_waits;</span><br><span class="line"></span><br><span class="line">2. 找到阻塞源</span><br><span class="line">   SELECT * FROM performance_schema.data_lock_waits;</span><br><span class="line"></span><br><span class="line">3. 查看阻塞事务的完整 SQL</span><br><span class="line">   SELECT * FROM information_schema.INNODB_TRX;</span><br><span class="line"></span><br><span class="line">4. 决定: KILL 阻塞事务 / 等待 / 优化 SQL</span><br><span class="line">   KILL &lt;blocking_trx_mysql_thread_id&gt;;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="七、死锁原理与排查"><a href="#七、死锁原理与排查" class="headerlink" title="七、死锁原理与排查"></a>七、死锁原理与排查</h2><h3 id="7-1-死锁的四个条件"><a href="#7-1-死锁的四个条件" class="headerlink" title="7.1 死锁的四个条件"></a>7.1 死锁的四个条件</h3><table>
+<thead>
+<tr>
+<th>条件</th>
+<th>说明</th>
+<th>打破方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>互斥</td>
+<td>资源同一时刻只能被一个线程占用</td>
+<td>不可打破</td>
+</tr>
+<tr>
+<td>占有并等待</td>
+<td>线程持有资源同时等待其他资源</td>
+<td>一次性申请所有资源</td>
+</tr>
+<tr>
+<td>不可抢占</td>
+<td>资源不能强制剥夺</td>
+<td>tryLock 超时机制</td>
+</tr>
+<tr>
+<td>循环等待</td>
+<td>形成环形等待链</td>
+<td><strong>统一加锁顺序</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>完整死锁解决指南：<a href="/blog/2024/02/01/%E6%AD%BB%E9%94%81%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3%E6%8C%87%E5%8D%97/">死锁问题解决指南</a></p>
+</blockquote>
+<h3 id="7-2-一个经典死锁场景"><a href="#7-2-一个经典死锁场景" class="headerlink" title="7.2 一个经典死锁场景"></a>7.2 一个经典死锁场景</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">CREATE TABLE t (id INT PRIMARY KEY, val INT);</span><br><span class="line">INSERT INTO t VALUES (1, 100), (2, 200);</span><br><span class="line"></span><br><span class="line">-- 事务 A: 先锁 id=1，再锁 id=2</span><br><span class="line">BEGIN;</span><br><span class="line">UPDATE t SET val = 101 WHERE id = 1;  -- 锁 id=1</span><br><span class="line">-- 此时事务 B 锁了 id=2</span><br><span class="line">UPDATE t SET val = 201 WHERE id = 2;  -- 等 id=2 的锁</span><br><span class="line"></span><br><span class="line">-- 事务 B: 先锁 id=2，再锁 id=1</span><br><span class="line">BEGIN;</span><br><span class="line">UPDATE t SET val = 202 WHERE id = 2;  -- 锁 id=2</span><br><span class="line">UPDATE t SET val = 102 WHERE id = 1;  -- 等 id=1 的锁</span><br><span class="line">-- 💀 死锁！A 等 B，B 等 A</span><br></pre></td></tr></table></figure>
+
+<h3 id="7-3-InnoDB-的自动死锁检测"><a href="#7-3-InnoDB-的自动死锁检测" class="headerlink" title="7.3 InnoDB 的自动死锁检测"></a>7.3 InnoDB 的自动死锁检测</h3><p>InnoDB 有一个后台线程 <code>lock_wait_timeout</code> 检测死锁，检测到后自动回滚<strong>代价最小</strong>的事务（undo log 最少），并返回错误码 1213。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 应用层处理死锁重试</span></span><br><span class="line"><span class="keyword">catch</span> (DeadlockLoserDataAccessException e) &#123;</span><br><span class="line">    <span class="comment">// 等待一段随机时间后重试</span></span><br><span class="line">    Thread.sleep(ThreadLocalRandom.current().nextLong(<span class="number">100</span>));</span><br><span class="line">    retry();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="八、锁与-MVCC-的关系"><a href="#八、锁与-MVCC-的关系" class="headerlink" title="八、锁与 MVCC 的关系"></a>八、锁与 MVCC 的关系</h2><p>锁和 MVCC 是 InnoDB 并发控制的两大支柱：</p>
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>读操作</th>
+<th>写操作</th>
+<th>解决的问题</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>MVCC</strong></td>
+<td>快照读（无锁）</td>
+<td>写 Undo Log</td>
+<td>读不阻塞写</td>
+</tr>
+<tr>
+<td><strong>锁</strong></td>
+<td>当前读（加锁）</td>
+<td>阻止并发写</td>
+<td>写不丢失</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>深入理解 MVCC：<a href="/blog/2026/07/28/MVCC%E5%BA%95%E5%B1%82%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/">MVCC 底层原理详解</a></p>
+</blockquote>
+<hr>
+<h2 id="九、面试高频题"><a href="#九、面试高频题" class="headerlink" title="九、面试高频题"></a>九、面试高频题</h2><h3 id="Q1：InnoDB-在-RR-级别下如何解决幻读？"><a href="#Q1：InnoDB-在-RR-级别下如何解决幻读？" class="headerlink" title="Q1：InnoDB 在 RR 级别下如何解决幻读？"></a>Q1：InnoDB 在 RR 级别下如何解决幻读？</h3><p>通过 <strong>Next-Key Lock</strong>（行锁 + 间隙锁）。间隙锁锁住记录之间的空隙，阻止其他事务 INSERT 新数据，从而防止范围查询时出现幻行。这也是 InnoDB 优于标准 RR 的关键。</p>
+<h3 id="Q2：SELECT-…-FOR-UPDATE-和-LOCK-IN-SHARE-MODE-的区别？"><a href="#Q2：SELECT-…-FOR-UPDATE-和-LOCK-IN-SHARE-MODE-的区别？" class="headerlink" title="Q2：SELECT … FOR UPDATE 和 LOCK IN SHARE MODE 的区别？"></a>Q2：SELECT … FOR UPDATE 和 LOCK IN SHARE MODE 的区别？</h3><table>
+<thead>
+<tr>
+<th></th>
+<th>FOR UPDATE</th>
+<th>LOCK IN SHARE MODE</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>锁类型</td>
+<td>X 锁（排他）</td>
+<td>S 锁（共享）</td>
+</tr>
+<tr>
+<td>其他事务读</td>
+<td>✅ 可以（快照读）</td>
+<td>✅ 可以</td>
+</tr>
+<tr>
+<td>其他事务写</td>
+<td>❌ 阻塞</td>
+<td>❌ 阻塞</td>
+</tr>
+<tr>
+<td>其他事务加 S 锁</td>
+<td>❌ 阻塞</td>
+<td>✅ 可以</td>
+</tr>
+</tbody></table>
+<h3 id="Q3：间隙锁会造成什么问题？"><a href="#Q3：间隙锁会造成什么问题？" class="headerlink" title="Q3：间隙锁会造成什么问题？"></a>Q3：间隙锁会造成什么问题？</h3><p>间隙锁的主要副作用是可能导致更多的死锁。因为间隙锁之间虽然兼容，但间隙锁和 INSERT 操作会冲突。例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">事务 A: DELETE FROM t WHERE id = 5;  -- 加 Gap Lock</span><br><span class="line">事务 B: DELETE FROM t WHERE id = 6;  -- 加 Gap Lock</span><br><span class="line">事务 A: INSERT INTO t VALUES (5, xxx); -- 等事务 B 的 Gap Lock 释放</span><br><span class="line">事务 B: INSERT INTO t VALUES (6, xxx); -- 等事务 A 的 Gap Lock 释放</span><br><span class="line">→ 💀 死锁！</span><br></pre></td></tr></table></figure>
+
+<h3 id="Q4：什么情况下行锁会升级为表锁？"><a href="#Q4：什么情况下行锁会升级为表锁？" class="headerlink" title="Q4：什么情况下行锁会升级为表锁？"></a>Q4：什么情况下行锁会升级为表锁？</h3><ol>
+<li>SQL 没有命中索引，做全表扫描</li>
+<li>使用了 <code>LOCK TABLES</code> 显式加表锁</li>
+<li>对 MySQL 原生不支持行锁的引擎（如 MyISAM）</li>
+</ol>
+<h3 id="Q5：如何预防死锁？"><a href="#Q5：如何预防死锁？" class="headerlink" title="Q5：如何预防死锁？"></a>Q5：如何预防死锁？</h3><ol>
+<li><strong>统一加锁顺序</strong>：所有事务按相同顺序访问资源</li>
+<li><strong>缩短事务</strong>，尽快提交</li>
+<li><strong>尽量用主键&#x2F;唯一索引更新</strong>，减少锁范围</li>
+<li><strong>RC 隔离级别替代 RR</strong>：避免间隙锁（但要注意不可重复读）</li>
+<li><strong>应用层捕获死锁并重试</strong></li>
+</ol>
+<hr>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">锁机制 = 并发写互斥的物理基础</span><br><span class="line">         │</span><br><span class="line">         ├── Record Lock  → 锁住单行</span><br><span class="line">         ├── Gap Lock     → 锁住间隙（防止插入）</span><br><span class="line">         ├── Next-Key Lock→ Record + Gap（默认算法）</span><br><span class="line">         └── Intention Lock→ 表级标记（提高效率）</span><br><span class="line"></span><br><span class="line">死锁     ← 循环等待，打破一个条件即可预防</span><br><span class="line">幻读     ← Gap Lock 补上 MVCC 的缺口</span><br><span class="line">性能     ← 锁是性能杀手，走索引、缩小范围、减短事务</span><br></pre></td></tr></table></figure>
+
+<p><strong>一句话</strong>：InnoDB 的行锁加在索引上，不命中索引就退化成表锁；RR 级别下默认使用 Next-Key Lock 防止幻读；间隙锁虽然解决幻读但也增加了死锁风险。</p>
+]]></content>
+      <categories>
+        <category>数据库</category>
+      </categories>
+      <tags>
+        <tag>面试</tag>
+        <tag>MySQL</tag>
+        <tag>并发</tag>
+        <tag>锁</tag>
+        <tag>死锁</tag>
+        <tag>InnoDB</tag>
       </tags>
   </entry>
 </search>
