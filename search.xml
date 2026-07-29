@@ -9108,4 +9108,300 @@
         <tag>领域驱动</tag>
       </tags>
   </entry>
+  <entry>
+    <title>MVCC 底层原理详解</title>
+    <url>/blog/2026/07/28/MVCC%E5%BA%95%E5%B1%82%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/</url>
+    <content><![CDATA[<h1 id="MVCC-底层原理详解"><a href="#MVCC-底层原理详解" class="headerlink" title="MVCC 底层原理详解"></a>MVCC 底层原理详解</h1><h2 id="一、什么是-MVCC？"><a href="#一、什么是-MVCC？" class="headerlink" title="一、什么是 MVCC？"></a>一、什么是 MVCC？</h2><p><strong>MVCC（Multi-Version Concurrency Control，多版本并发控制）</strong> 是一种并发控制机制，它通过维护数据的多个版本来实现高效的并发读写，核心思想是 <strong>“读不阻塞写，写不阻塞读”</strong>。</p>
+<p>不同于传统的锁机制（读锁&#x2F;写锁互斥），MVCC 让每个事务看到的是数据的<strong>一致性快照（Snapshot）</strong>，而不是实时数据。这样就避免了大量读写冲突。</p>
+<hr>
+<h2 id="二、为什么需要-MVCC？"><a href="#二、为什么需要-MVCC？" class="headerlink" title="二、为什么需要 MVCC？"></a>二、为什么需要 MVCC？</h2><h3 id="2-1-没有-MVCC-的世界——锁的困境"><a href="#2-1-没有-MVCC-的世界——锁的困境" class="headerlink" title="2.1 没有 MVCC 的世界——锁的困境"></a>2.1 没有 MVCC 的世界——锁的困境</h3><p>假设一个最简单的并发场景：</p>
+<table>
+<thead>
+<tr>
+<th>时间</th>
+<th>事务 A（读）</th>
+<th>事务 B（写）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>T1</td>
+<td>开始读 users 表</td>
+<td></td>
+</tr>
+<tr>
+<td>T2</td>
+<td>读取中…</td>
+<td>开始更新 users 表</td>
+</tr>
+<tr>
+<td>T3</td>
+<td>读到脏数据 ❌</td>
+<td>更新中…</td>
+</tr>
+</tbody></table>
+<p>没有并发控制，可能读到<strong>脏读、不可重复读、幻读</strong>等问题。</p>
+<h3 id="2-2-纯锁方案的问题"><a href="#2-2-纯锁方案的问题" class="headerlink" title="2.2 纯锁方案的问题"></a>2.2 纯锁方案的问题</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">读操作 + 读锁 ———— 不互斥（OK）</span><br><span class="line">读操作 + 写锁 ———— 互斥     ❌ 读被写阻塞</span><br><span class="line">写操作 + 写锁 ———— 互斥     ❌ 并发写入低</span><br></pre></td></tr></table></figure>
+
+<p>纯锁方案下，<strong>读写互相阻塞</strong>，高并发场景吞吐量极低。</p>
+<h3 id="2-3-MVCC-的方案"><a href="#2-3-MVCC-的方案" class="headerlink" title="2.3 MVCC 的方案"></a>2.3 MVCC 的方案</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">读操作 ———— 读旧版本快照（不阻塞）</span><br><span class="line">写操作 ———— 创建新版本（不阻塞读）</span><br><span class="line">写操作之间 ———— 仍然需要锁</span><br></pre></td></tr></table></figure>
+
+<p>MVCC 的精妙之处：<strong>读写互不阻塞，只有写写冲突需要处理</strong>。</p>
+<hr>
+<h2 id="三、MVCC-核心三要素"><a href="#三、MVCC-核心三要素" class="headerlink" title="三、MVCC 核心三要素"></a>三、MVCC 核心三要素</h2><p>以 <strong>MySQL InnoDB</strong> 为具体例子，MVCC 由三个核心机制构成：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────────────┐</span><br><span class="line">│                      MVCC 体系                           │</span><br><span class="line">│                                                         │</span><br><span class="line">│   ┌─────────────┐   ┌─────────────┐   ┌──────────────┐ │</span><br><span class="line">│   │  隐藏字段    │   │  Undo Log   │   │  Read View   │ │</span><br><span class="line">│   │  (Hidden     │   │  (回滚日志)  │   │  (读视图)    │ │</span><br><span class="line">│   │   Columns)   │   │             │   │              │ │</span><br><span class="line">│   └─────────────┘   └─────────────┘   └──────────────┘ │</span><br><span class="line">│                                                         │</span><br><span class="line">└─────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-1-隐藏字段（Hidden-Columns）"><a href="#3-1-隐藏字段（Hidden-Columns）" class="headerlink" title="3.1 隐藏字段（Hidden Columns）"></a>3.1 隐藏字段（Hidden Columns）</h3><p>InnoDB 在<strong>每一行数据</strong>后面都悄悄加了三个隐藏字段：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>大小</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>DB_TRX_ID</code></td>
+<td>6字节</td>
+<td><strong>最后修改</strong>该行的事务ID</td>
+</tr>
+<tr>
+<td><code>DB_ROLL_PTR</code></td>
+<td>7字节</td>
+<td>回滚指针，指向 Undo Log 中的<strong>旧版本</strong></td>
+</tr>
+<tr>
+<td><code>DB_ROW_ID</code></td>
+<td>6字节</td>
+<td>隐式自增ID（无主键时使用）</td>
+</tr>
+</tbody></table>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">┌──────────────────────────────────────────────────┐</span><br><span class="line">│                一行数据的物理结构                    │</span><br><span class="line">│                                                   │</span><br><span class="line">│  ┌──────┬──────┬──────┬──────────┬──────────┐    │</span><br><span class="line">│  │  id  │ name │ age  │ DB_TRX_ID│DB_ROLL_PTR│    │</span><br><span class="line">│  │      │      │      │          │          │     │</span><br><span class="line">│  │  1   │ 张三 │  25  │   100    │  → 指向   │    │</span><br><span class="line">│  │      │      │      │          │  Undo Log  │    │</span><br><span class="line">│  └──────┴──────┴──────┴──────────┴──────────┘    │</span><br><span class="line">│                                                   │</span><br><span class="line">└──────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-Undo-Log（回滚日志）——版本链"><a href="#3-2-Undo-Log（回滚日志）——版本链" class="headerlink" title="3.2 Undo Log（回滚日志）——版本链"></a>3.2 Undo Log（回滚日志）——版本链</h3><p>每次修改数据，InnoDB 会把<strong>旧版本</strong>记录到 Undo Log，然后用 <code>DB_ROLL_PTR</code> 串联成<strong>版本链</strong>。</p>
+<p><strong>示例：假设初始数据，事务 50 插入</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">当前页上的记录:</span><br><span class="line">┌──────┬──────┬──────┬──────────┬───────────┐</span><br><span class="line">│  id  │ name │ age  │ DB_TRX_ID│DB_ROLL_PTR│</span><br><span class="line">├──────┼──────┼──────┼──────────┼───────────┤</span><br><span class="line">│  1   │ 张三 │  25  │    50    │   NULL    │</span><br><span class="line">└──────┴──────┴──────┴──────────┴───────────┘</span><br></pre></td></tr></table></figure>
+
+<p><strong>事务 60 更新 age &#x3D; 26：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">步骤1: 把旧版本(age=25)复制到 Undo Log</span><br><span class="line">步骤2: 修改当前行 age=26, DB_TRX_ID=60, DB_ROLL_PTR 指向 Undo Log</span><br><span class="line"></span><br><span class="line">          当前页                             Undo Log</span><br><span class="line">┌──────────────────────────┐     ┌──────────────────────────┐</span><br><span class="line">│  id=1, name=张三, age=26 │     │  id=1, name=张三, age=25 │</span><br><span class="line">│  DB_TRX_ID = 60         │     │  DB_TRX_ID = 50         │</span><br><span class="line">│  DB_ROLL_PTR ───────────┼────→│  DB_ROLL_PTR = NULL     │</span><br><span class="line">└──────────────────────────┘     └──────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<p><strong>事务 70 再更新 age &#x3D; 27：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">         当前页                            Undo Log</span><br><span class="line">┌──────────────────────┐    ┌──────────────────────┐    ┌──────────────────────┐</span><br><span class="line">│ id=1, 张三,  age=27 │    │ id=1, 张三,  age=26 │    │ id=1, 张三,  age=25 │</span><br><span class="line">│ DB_TRX_ID = 70      │    │ DB_TRX_ID = 60      │    │ DB_TRX_ID = 50      │</span><br><span class="line">│ DB_ROLL_PTR ────────┼───→│ DB_ROLL_PTR ────────┼───→│ DB_ROLL_PTR = NULL   │</span><br><span class="line">└──────────────────────┘    └──────────────────────┘    └──────────────────────┘</span><br><span class="line">         ↑                        ↑                         ↑</span><br><span class="line">      最新版本                 历史版本1                  历史版本2</span><br></pre></td></tr></table></figure>
+
+<p>这样就形成了一条<strong>版本链</strong>，从最新的记录出发，沿着 <code>DB_ROLL_PTR</code> 可以回溯到任意历史版本。</p>
+<h3 id="3-3-Read-View（读视图）——可见性判断核心"><a href="#3-3-Read-View（读视图）——可见性判断核心" class="headerlink" title="3.3 Read View（读视图）——可见性判断核心"></a>3.3 Read View（读视图）——可见性判断核心</h3><p>Read View 是<strong>事务进行快照读时产生的数据快照</strong>。它决定了哪些版本对当前事务可见。</p>
+<p><strong>Read View 结构（简化）：</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ReadView &#123;</span><br><span class="line">    m_ids:        [活跃事务ID列表]  ← 创建快照时所有未提交的事务</span><br><span class="line">    min_trx_id:   最小活跃事务ID</span><br><span class="line">    max_trx_id:   下一个要分配的事务ID（全局最大事务ID+1）</span><br><span class="line">    creator_trx_id: 创建此ReadView的事务ID（创建者本人）</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="四、可见性判断算法"><a href="#四、可见性判断算法" class="headerlink" title="四、可见性判断算法"></a>四、可见性判断算法</h2><p>这是 MVCC 最核心的算法。给定一个数据版本的事务ID <code>trx_id</code>，ReadView 按照以下规则判断可见性：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">可见性判断三规则:</span><br><span class="line"></span><br><span class="line">规则1: trx_id == creator_trx_id</span><br><span class="line">       → ✅ 可见（自己修改的，当然可见）</span><br><span class="line"></span><br><span class="line">规则2: trx_id &gt; max_trx_id</span><br><span class="line">       → ❌ 不可见（这个版本是创建 ReadView 之后才提交的）</span><br><span class="line"></span><br><span class="line">规则3: trx_id &lt; min_trx_id</span><br><span class="line">       → ✅ 可见（在创建 ReadView 之前就已提交）</span><br><span class="line"></span><br><span class="line">规则4: min_trx_id &lt;= trx_id &lt; max_trx_id</span><br><span class="line">       → 需要进一步判断</span><br><span class="line">          ├─ trx_id 在 m_ids 活跃列表中 → ❌ 不可见（未提交）</span><br><span class="line">          └─ trx_id 不在 m_ids 中         → ✅ 可见（已提交）</span><br></pre></td></tr></table></figure>
+
+<p><strong>如果当前版本不可见，就沿着版本链（DB_ROLL_PTR）一直往前找，直到找到可见版本为止。</strong></p>
+<h3 id="图解可见性判断"><a href="#图解可见性判断" class="headerlink" title="图解可见性判断"></a>图解可见性判断</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ReadView 快照:</span><br><span class="line">  m_ids = [60, 80]         ← 活跃（未提交）</span><br><span class="line">  min_trx_id = 60</span><br><span class="line">  max_trx_id = 101         ← 下一个要分配的事务ID</span><br><span class="line">  creator_trx_id = 100     ← 当前事务</span><br><span class="line"></span><br><span class="line">版本链:</span><br><span class="line">  [trx=90] → [trx=80] → [trx=60] → [trx=50]</span><br><span class="line"></span><br><span class="line">判断过程:</span><br><span class="line">  trx=90:  60&lt;90&lt;101, 90不在[60,80]中 → ✅ 可见!</span><br><span class="line">  trx=80:  60&lt;80&lt;101, 80在[60,80]中   → ❌ 不可见,继续找</span><br><span class="line">  trx=60:  60&lt;60&lt;101, 60在[60,80]中   → ❌ 不可见,继续找</span><br><span class="line">  trx=50:  50&lt;60                       → ✅ 可见!</span><br><span class="line"></span><br><span class="line">最终结果: 使用 trx=90 的版本</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="五、MVCC-在隔离级别中的应用"><a href="#五、MVCC-在隔离级别中的应用" class="headerlink" title="五、MVCC 在隔离级别中的应用"></a>五、MVCC 在隔离级别中的应用</h2><h3 id="5-1-READ-COMMITTED（读已提交）"><a href="#5-1-READ-COMMITTED（读已提交）" class="headerlink" title="5.1 READ COMMITTED（读已提交）"></a>5.1 READ COMMITTED（读已提交）</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">特点: 每次 SELECT 都生成一个新的 ReadView</span><br><span class="line">结果: 能看到其他事务**已提交**的最新版本（不可重复读 ✗）</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">时间线:</span><br><span class="line">RC级别下每次查询新建ReadView</span><br><span class="line"></span><br><span class="line">事务A: SELECT ───────── SELECT ───────── SELECT</span><br><span class="line">         │               │               │</span><br><span class="line">         │ ReadView1     │ ReadView2     │ ReadView3</span><br><span class="line">         │               │               │</span><br><span class="line">事务B:   └─UPDATE─COMMIT─┘               │</span><br><span class="line">                                         │</span><br><span class="line">事务C:                                   └─UPDATE─COMMIT</span><br><span class="line"></span><br><span class="line">事务A的第二次SELECT能看到事务B的更新（不可重复读）</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-REPEATABLE-READ（可重复读）"><a href="#5-2-REPEATABLE-READ（可重复读）" class="headerlink" title="5.2 REPEATABLE READ（可重复读）"></a>5.2 REPEATABLE READ（可重复读）</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">特点: 第一次 SELECT 生成 ReadView，之后复用同一个</span><br><span class="line">结果: 事务内多次读取结果一致（可重复读 ✓）</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">时间线:</span><br><span class="line">RR级别下复用第一个ReadView</span><br><span class="line"></span><br><span class="line">事务A: SELECT ───────── SELECT ───────── SELECT</span><br><span class="line">         │               │               │</span><br><span class="line">         │ ReadView      │ 复用同一       │ 复用同一</span><br><span class="line">         │               │ ReadView      │ ReadView</span><br><span class="line">事务B:   └─UPDATE─COMMIT─┘               </span><br><span class="line"></span><br><span class="line">事务A的第二次SELECT仍然看不到事务B的更新 → 可重复读 ✅</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-3-隔离级别对比"><a href="#5-3-隔离级别对比" class="headerlink" title="5.3 隔离级别对比"></a>5.3 隔离级别对比</h3><table>
+<thead>
+<tr>
+<th></th>
+<th>READ UNCOMMITTED</th>
+<th>READ COMMITTED</th>
+<th>REPEATABLE READ</th>
+<th>SERIALIZABLE</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>脏读</strong></td>
+<td>✗ 可能</td>
+<td>✅ 防止</td>
+<td>✅ 防止</td>
+<td>✅ 防止</td>
+</tr>
+<tr>
+<td><strong>不可重复读</strong></td>
+<td>✗ 可能</td>
+<td>✗ 可能</td>
+<td>✅ 防止</td>
+<td>✅ 防止</td>
+</tr>
+<tr>
+<td><strong>幻读</strong></td>
+<td>✗ 可能</td>
+<td>✗ 可能</td>
+<td>✅ 大部分防止</td>
+<td>✅ 防止</td>
+</tr>
+<tr>
+<td><strong>MVCC快照读</strong></td>
+<td>不用，直接读</td>
+<td>每次新建ReadView</td>
+<td>复用第一个ReadView</td>
+<td>升级为锁定读</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="六、当前读-vs-快照读"><a href="#六、当前读-vs-快照读" class="headerlink" title="六、当前读 vs 快照读"></a>六、当前读 vs 快照读</h2><p>MVCC 只作用于<strong>快照读（Snapshot Read）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>语句</th>
+<th>使用MVCC？</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>快照读</strong></td>
+<td><code>SELECT * FROM t WHERE id=1</code></td>
+<td>✅ 使用 MVCC</td>
+</tr>
+<tr>
+<td><strong>当前读</strong></td>
+<td><code>SELECT ... FOR UPDATE</code></td>
+<td>❌ 加锁读最新版</td>
+</tr>
+<tr>
+<td><strong>当前读</strong></td>
+<td><code>SELECT ... LOCK IN SHARE MODE</code></td>
+<td>❌ 加锁读最新版</td>
+</tr>
+<tr>
+<td><strong>当前读</strong></td>
+<td><code>UPDATE</code> &#x2F; <code>DELETE</code> &#x2F; <code>INSERT</code></td>
+<td>❌ 总是读最新版</td>
+</tr>
+</tbody></table>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">快照读（MVCC）:  读 → 版本链中可见的版本</span><br><span class="line">当前读（Lock）:  读 → 磁盘上最新的版本（加 X锁/S锁）</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="七、完整流程示例"><a href="#七、完整流程示例" class="headerlink" title="七、完整流程示例"></a>七、完整流程示例</h2><p>用一个完整例子串联所有概念：</p>
+<h3 id="初始状态"><a href="#初始状态" class="headerlink" title="初始状态"></a>初始状态</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">┌───────────────────────────────────────────────────────┐</span><br><span class="line">│  表: users,  当前行: (id=1, name=&#x27;张三&#x27;, balance=100)  │</span><br><span class="line">│  DB_TRX_ID=50, DB_ROLL_PTR=NULL                       │</span><br><span class="line">└───────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="并发操作序列"><a href="#并发操作序列" class="headerlink" title="并发操作序列"></a>并发操作序列</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">时间  事务A (id=101)         事务B (id=102)         事务C (id=103)</span><br><span class="line">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span><br><span class="line">T1    BEGIN;</span><br><span class="line">T2                           BEGIN;</span><br><span class="line">T3    UPDATE SET             </span><br><span class="line">      balance=80             </span><br><span class="line">      (修改行,trx_id=101)</span><br><span class="line">      </span><br><span class="line">      页上: balance=80</span><br><span class="line">      Undo: balance=100</span><br><span class="line">      </span><br><span class="line">T4                           SELECT balance</span><br><span class="line">                             (RR级别，创建ReadView)</span><br><span class="line">                             </span><br><span class="line">                             ReadView:</span><br><span class="line">                               m_ids = [101, 102]</span><br><span class="line">                               min_trx_id = 101</span><br><span class="line">                               max_trx_id = 104</span><br><span class="line">                               creator = 102</span><br><span class="line">                               </span><br><span class="line">                             走版本链:</span><br><span class="line">                             当前(trx=101) 在m_ids中</span><br><span class="line">                             → 不可见</span><br><span class="line">                             回溯到 Undo(trx=50)</span><br><span class="line">                             → 50 &lt; 101 → 可见!</span><br><span class="line">                             </span><br><span class="line">                             返回 balance=100 ✅</span><br><span class="line">                             </span><br><span class="line">T5                                                    BEGIN;</span><br><span class="line">T6    COMMIT;                                          </span><br><span class="line">T7                                                    SELECT balance</span><br><span class="line">                                                      (RC级别，新建ReadView)</span><br><span class="line">                                                      </span><br><span class="line">                                                      ReadView:</span><br><span class="line">                                                        m_ids = [102, 103]</span><br><span class="line">                                                        min = 102</span><br><span class="line">                                                        max = 104</span><br><span class="line">                                                      </span><br><span class="line">                                                      当前(trx=101) 不在m_ids</span><br><span class="line">                                                      且 101 &lt; 102 → 可见!</span><br><span class="line">                                                      </span><br><span class="line">                                                      返回 balance=80 ✅</span><br></pre></td></tr></table></figure>
+
+<h3 id="关键点"><a href="#关键点" class="headerlink" title="关键点"></a>关键点</h3><ol>
+<li><strong>T4 时刻事务B的快照读</strong>：事务A未提交（101 在活跃列表），所以看不到修改，读的是 <code>balance=100</code></li>
+<li><strong>T7 时刻事务C的快照读</strong>：事务A已提交（101 不在活跃列表），RC隔离级别下可以看到最新提交版本 <code>balance=80</code></li>
+</ol>
+<hr>
+<h2 id="八、Purge-线程与版本回收"><a href="#八、Purge-线程与版本回收" class="headerlink" title="八、Purge 线程与版本回收"></a>八、Purge 线程与版本回收</h2><p>无限制的版本链会无限增长，撑爆磁盘。InnoDB 的 <strong>Purge 线程</strong> 负责清理旧版本：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Purge 线程工作逻辑:</span><br><span class="line"></span><br><span class="line">1. 定期扫描 Undo Log</span><br><span class="line">2. 判断某个 Undo Log 是否还有事务需要它</span><br><span class="line">3. 如果没有任何活跃事务的 ReadView 能&quot;看到&quot;这个版本</span><br><span class="line">   → 这个版本就是&quot;垃圾&quot;，可以安全删除</span><br><span class="line">4. 清理 Undo Log 条目，释放空间</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">判断可删除:</span><br><span class="line"></span><br><span class="line">ReadView.min_trx_id &gt; Undo记录.trx_id  ?</span><br><span class="line">    └─ 是 → 所有事务都看到更新版本了，可以删除此Undo</span><br><span class="line">    └─ 否 → 还有事务可能需要它，保留</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>长事务的危害</strong>：一个长时间运行的事务，它的 ReadView 会让 MVCC 保留大量旧版本无法清理，导致 Undo Log 暴涨、查询变慢。详见 <a href="/blog/2026/07/17/MySQL%E9%95%BF%E4%BA%8B%E5%8A%A1%E5%AF%B9MVCC%E7%9A%84%E5%BD%B1%E5%93%8D/">MySQL 长事务对 MVCC 的影响</a>。</p>
+</blockquote>
+<hr>
+<h2 id="九、MVCC-的优缺点总结"><a href="#九、MVCC-的优缺点总结" class="headerlink" title="九、MVCC 的优缺点总结"></a>九、MVCC 的优缺点总结</h2><h3 id="优点-✅"><a href="#优点-✅" class="headerlink" title="优点 ✅"></a>优点 ✅</h3><table>
+<thead>
+<tr>
+<th>优点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>读写不冲突</strong></td>
+<td>读操作不需要获取锁，写操作也不阻塞读</td>
+</tr>
+<tr>
+<td><strong>高并发</strong></td>
+<td>大量读+少量写场景下吞吐量极高</td>
+</tr>
+<tr>
+<td><strong>一致性快照</strong></td>
+<td>RR 级别下事务内数据一致，不会出现不可重复读</td>
+</tr>
+<tr>
+<td><strong>无锁读</strong></td>
+<td>普通 SELECT 完全无锁，性能极佳</td>
+</tr>
+</tbody></table>
+<h3 id="缺点-❌"><a href="#缺点-❌" class="headerlink" title="缺点 ❌"></a>缺点 ❌</h3><table>
+<thead>
+<tr>
+<th>缺点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>额外存储</strong></td>
+<td>Undo Log 占用磁盘空间</td>
+</tr>
+<tr>
+<td><strong>版本链过长</strong></td>
+<td>频繁更新或长事务导致版本链很长，影响查询性能</td>
+</tr>
+<tr>
+<td><strong>不是真正的 Serializable</strong></td>
+<td>MVCC 本身不解决写偏斜（Write Skew）</td>
+</tr>
+<tr>
+<td><strong>内存开销</strong></td>
+<td>维护 ReadView 和版本链需要额外内存</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="十、PostgreSQL-的-MVCC（对比-InnoDB）"><a href="#十、PostgreSQL-的-MVCC（对比-InnoDB）" class="headerlink" title="十、PostgreSQL 的 MVCC（对比 InnoDB）"></a>十、PostgreSQL 的 MVCC（对比 InnoDB）</h2><p>PostgreSQL 的实现思路类似，但细节不同：</p>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>MySQL InnoDB</th>
+<th>PostgreSQL</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>版本存储</strong></td>
+<td>Undo Log（分离）</td>
+<td>数据页内（堆中）</td>
+</tr>
+<tr>
+<td><strong>清理机制</strong></td>
+<td>Purge线程（后台）</td>
+<td>VACUUM（定期清理死元组）</td>
+</tr>
+<tr>
+<td><strong>回滚段</strong></td>
+<td>有专用回滚段</td>
+<td>无回滚段，直接标记</td>
+</tr>
+<tr>
+<td><strong>事务ID回卷</strong></td>
+<td>不敏感</td>
+<td>需要 FREEZE 防止回卷</td>
+</tr>
+<tr>
+<td><strong>优点</strong></td>
+<td>回滚快</td>
+<td>版本查找快（在同一页）</td>
+</tr>
+<tr>
+<td><strong>缺点</strong></td>
+<td>版本链可能跨页</td>
+<td>表膨胀，需要 VACUUM</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">MVCC 的核心 = 版本链 + 快照 + 可见性判断</span><br><span class="line"></span><br><span class="line">         ┌──────────────────┐</span><br><span class="line">         │   每个事务启动时   │</span><br><span class="line">         │   拍一张&quot;快照&quot;    │</span><br><span class="line">         │   (ReadView)     │</span><br><span class="line">         └────────┬─────────┘</span><br><span class="line">                  │</span><br><span class="line">                  ▼</span><br><span class="line">         ┌──────────────────┐</span><br><span class="line">         │   读取数据时      │</span><br><span class="line">         │   沿版本链回溯    │</span><br><span class="line">         │   找到可见版本    │</span><br><span class="line">         └────────┬─────────┘</span><br><span class="line">                  │</span><br><span class="line">                  ▼</span><br><span class="line">         ┌──────────────────┐</span><br><span class="line">         │   根据三规则判断  │</span><br><span class="line">         │   版本是否可见    │</span><br><span class="line">         └────────┬─────────┘</span><br><span class="line">                  │</span><br><span class="line">                  ▼</span><br><span class="line">         ┌──────────────────┐</span><br><span class="line">         │   返回该版本数据  │</span><br><span class="line">         └──────────────────┘</span><br><span class="line"></span><br><span class="line">本质: 用空间换时间，用版本号替代锁竞争</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>数据库</category>
+      </categories>
+      <tags>
+        <tag>面试</tag>
+        <tag>MySQL</tag>
+        <tag>MVCC</tag>
+        <tag>事务</tag>
+        <tag>InnoDB</tag>
+        <tag>并发控制</tag>
+      </tags>
+  </entry>
 </search>
