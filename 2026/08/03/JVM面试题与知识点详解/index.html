@@ -1,0 +1,690 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>JVM 面试题与知识点详解：内存/GC/类加载/JMM/调优全解析 | 刘华强的笔记</title><meta name="author" content="刘华强"><meta name="copyright" content="刘华强"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="JVM 面试题与知识点详解：内存&#x2F;GC&#x2F;类加载&#x2F;JMM&#x2F;调优全解析JVM 是 Java 面试的必考硬核，也是线上排障的基本功。本文按”内存结构 → 垃圾回收 → 类加载 → JMM → OOM 排查 → 调优实战“主线系统梳理：运行时数据区、分代回收、GC 算法与收集器、双亲委派模型、JMM 与 volatile、常量池、OOM 全场景、常用工具（jstat">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JVM 面试题与知识点详解：内存&#x2F;GC&#x2F;类加载&#x2F;JMM&#x2F;调优全解析">
+<meta property="og:url" content="https://anlen123.github.io/blog/2026/08/03/JVM%E9%9D%A2%E8%AF%95%E9%A2%98%E4%B8%8E%E7%9F%A5%E8%AF%86%E7%82%B9%E8%AF%A6%E8%A7%A3/index.html">
+<meta property="og:site_name" content="刘华强的笔记">
+<meta property="og:description" content="JVM 面试题与知识点详解：内存&#x2F;GC&#x2F;类加载&#x2F;JMM&#x2F;调优全解析JVM 是 Java 面试的必考硬核，也是线上排障的基本功。本文按”内存结构 → 垃圾回收 → 类加载 → JMM → OOM 排查 → 调优实战“主线系统梳理：运行时数据区、分代回收、GC 算法与收集器、双亲委派模型、JMM 与 volatile、常量池、OOM 全场景、常用工具（jstat">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://anlen123.github.io/blog/blog/images/avatar.gif">
+<meta property="article:published_time" content="2026-08-03T08:00:00.000Z">
+<meta property="article:modified_time" content="2026-08-03T10:07:47.879Z">
+<meta property="article:author" content="刘华强">
+<meta property="article:tag" content="GC">
+<meta property="article:tag" content="JMM">
+<meta property="article:tag" content="JVM">
+<meta property="article:tag" content="Java">
+<meta property="article:tag" content="OOM">
+<meta property="article:tag" content="内存模型">
+<meta property="article:tag" content="双亲委派">
+<meta property="article:tag" content="垃圾回收">
+<meta property="article:tag" content="类加载">
+<meta property="article:tag" content="调优">
+<meta property="article:tag" content="面试">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://anlen123.github.io/blog/blog/images/avatar.gif"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "JVM 面试题与知识点详解：内存/GC/类加载/JMM/调优全解析",
+  "url": "https://anlen123.github.io/blog/2026/08/03/JVM%E9%9D%A2%E8%AF%95%E9%A2%98%E4%B8%8E%E7%9F%A5%E8%AF%86%E7%82%B9%E8%AF%A6%E8%A7%A3/",
+  "image": "https://anlen123.github.io/blog/blog/images/avatar.gif",
+  "datePublished": "2026-08-03T08:00:00.000Z",
+  "dateModified": "2026-08-03T10:07:47.879Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "刘华强",
+      "url": "https://anlen123.github.io/blog"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/blog/blog/images/favicon-16x16-next.png"><link rel="canonical" href="https://anlen123.github.io/blog/2026/08/03/JVM%E9%9D%A2%E8%AF%95%E9%A2%98%E4%B8%8E%E7%9F%A5%E8%AF%86%E7%82%B9%E8%AF%A6%E8%A7%A3/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/blog/css/index.css?v=5.5.5"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/blog/',
+  algolia: undefined,
+  localSearch: {"path":"/blog/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"pagination":{"enable":false,"hitsPerPage":8},"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.13.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'JVM 面试题与知识点详解：内存/GC/类加载/JMM/调优全解析',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/blog/css/animal-island-theme.css"><meta name="generator" content="Hexo 8.1.2"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/blog/blog/images/avatar.gif" onerror="this.onerror=null;this.src='/blog/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/blog/archives/"><div class="headline">文章</div><div class="length-num">40</div></a><a href="/blog/tags/"><div class="headline">标签</div><div class="length-num">103</div></a><a href="/blog/categories/"><div class="headline">分类</div><div class="length-num">8</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/blog/"><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/blog/about/"><span> 关于</span></a></div><div class="menus_item"><a class="site-page" href="/blog/travel-plan/"><span> 出行攻略</span></a></div><div class="menus_item"><a class="site-page" href="/blog/categories/"><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/blog/archives/"><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/blog/tags/"><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/blog/resume/"><span> 简历</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/blog/"><span class="site-name">刘华强的笔记</span></a><a class="nav-page-title" href="/blog/"><span class="site-name">JVM 面试题与知识点详解：内存/GC/类加载/JMM/调优全解析</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/blog/"><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/blog/about/"><span> 关于</span></a></div><div class="menus_item"><a class="site-page" href="/blog/travel-plan/"><span> 出行攻略</span></a></div><div class="menus_item"><a class="site-page" href="/blog/categories/"><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/blog/archives/"><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/blog/tags/"><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/blog/resume/"><span> 简历</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">JVM 面试题与知识点详解：内存/GC/类加载/JMM/调优全解析</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-08-03T08:00:00.000Z" title="发表于 2026-08-03 16:00:00">2026-08-03</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-08-03T10:07:47.879Z" title="更新于 2026-08-03 18:07:47">2026-08-03</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/blog/categories/%E5%90%8E%E7%AB%AF/">后端</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h1 id="JVM-面试题与知识点详解：内存-GC-类加载-JMM-调优全解析"><a href="#JVM-面试题与知识点详解：内存-GC-类加载-JMM-调优全解析" class="headerlink" title="JVM 面试题与知识点详解：内存&#x2F;GC&#x2F;类加载&#x2F;JMM&#x2F;调优全解析"></a>JVM 面试题与知识点详解：内存&#x2F;GC&#x2F;类加载&#x2F;JMM&#x2F;调优全解析</h1><p>JVM 是 Java 面试的<strong>必考硬核</strong>，也是线上排障的基本功。本文按”<strong>内存结构 → 垃圾回收 → 类加载 → JMM → OOM 排查 → 调优实战</strong>“主线系统梳理：运行时数据区、分代回收、GC 算法与收集器、双亲委派模型、JMM 与 volatile、常量池、OOM 全场景、常用工具（jstat&#x2F;jmap&#x2F;jstack&#x2F;Arthas）、调优方法论，最后附上面试模拟题。</p>
+<blockquote>
+<p>相关知识点闭环：<a href="/blog/2026/07/01/Java%E5%9B%9B%E7%A7%8D%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B%E8%AF%A6%E8%A7%A3/">Java 四种引用类型详解</a> · <a href="/blog/2026/07/27/synchronized%E9%9D%A2%E8%AF%95%E9%A2%98%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">synchronized 面试题深度解析</a> · <a href="/blog/2024/04/10/%E7%BA%BF%E7%A8%8B%E6%B1%A0%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90/">线程池深度解析</a> · <a href="/blog/2026/07/24/StringBuilder%E5%BA%95%E5%B1%82%E6%BA%90%E7%A0%81%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/">StringBuilder 底层源码原理详解</a></p>
+</blockquote>
+<hr>
+<h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><ol>
+<li><a href="#%E4%B8%80jvm-%E8%BF%90%E8%A1%8C%E6%97%B6%E5%86%85%E5%AD%98%E7%BB%93%E6%9E%84">JVM 运行时内存结构</a></li>
+<li><a href="#%E4%BA%8C%E5%AF%B9%E8%B1%A1%E7%9A%84%E4%B8%80%E7%94%9F%E4%BB%8E-eden-%E5%88%B0%E8%80%81%E5%B9%B4%E4%BB%A3">对象的一生：从 Eden 到老年代</a></li>
+<li><a href="#%E4%B8%89%E6%80%8E%E4%B9%88%E5%88%A4%E5%AE%9A%E5%9E%83%E5%9C%BE%E5%8F%AF%E8%BE%BE%E6%80%A7%E5%88%86%E6%9E%90">怎么判定垃圾：可达性分析</a></li>
+<li><a href="#%E5%9B%9B%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%9B%9B%E5%A4%A7%E7%AE%97%E6%B3%95">垃圾回收四大算法</a></li>
+<li><a href="#%E4%BA%94minor-gc--major-gc--full-gc-%E4%B8%8E-stw">Minor GC &#x2F; Major GC &#x2F; Full GC 与 STW</a></li>
+<li><a href="#%E5%85%AD%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8%E5%85%A8%E6%99%AF%E4%B8%8E%E9%80%89%E5%9E%8B">垃圾收集器全景与选型</a></li>
+<li><a href="#%E4%B8%83jmmjava-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E4%B8%8E%E5%B9%B6%E5%8F%91%E4%B8%89%E7%89%B9%E6%80%A7">JMM：Java 内存模型与并发三特性</a></li>
+<li><a href="#%E5%85%AB%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6%E4%B8%8E%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE">类加载机制与双亲委派</a></li>
+<li><a href="#%E4%B9%9D%E5%B8%B8%E9%87%8F%E6%B1%A0%E4%B8%8E-string-%E7%9A%84%E5%A5%A5%E7%A7%98">常量池与 String 的奥秘</a></li>
+<li><a href="#%E5%8D%81oom-%E4%B8%8E%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%85%A8%E5%9C%BA%E6%99%AF">OOM 与内存泄漏全场景</a></li>
+<li><a href="#%E5%8D%81%E4%B8%80jvm-%E5%B8%B8%E7%94%A8%E5%8F%82%E6%95%B0%E8%AF%A6%E8%A7%A3">JVM 常用参数详解</a></li>
+<li><a href="#%E5%8D%81%E4%BA%8Cjvm-%E8%B0%83%E4%BC%98%E7%9A%84%E6%AD%A3%E7%A1%AE%E6%96%B9%E6%B3%95">JVM 调优的正确方法</a></li>
+<li><a href="#%E5%8D%81%E4%B8%89%E5%B8%B8%E7%94%A8%E8%AF%8A%E6%96%AD%E5%B7%A5%E5%85%B7">常用诊断工具</a></li>
+<li><a href="#%E5%8D%81%E5%9B%9B%E5%AE%9E%E6%88%98%E4%B8%80%E6%AC%A1-full-gc-%E9%A2%91%E7%B9%81%E7%9A%84%E6%8E%92%E6%9F%A5%E6%A1%88%E4%BE%8B">实战：一次 Full GC 频繁的排查案例</a></li>
+<li><a href="#%E5%8D%81%E4%BA%94%E9%9D%A2%E8%AF%95%E6%A8%A1%E6%8B%9F%E9%A2%98%E4%B8%8E%E5%8F%82%E8%80%83%E7%AD%94%E6%A1%88">面试模拟题与参考答案</a></li>
+<li><a href="#%E6%80%BB%E7%BB%93">总结</a></li>
+</ol>
+<hr>
+<h2 id="一、JVM-运行时内存结构"><a href="#一、JVM-运行时内存结构" class="headerlink" title="一、JVM 运行时内存结构"></a>一、JVM 运行时内存结构</h2><h3 id="1-1-内存大图（JDK-8-）"><a href="#1-1-内存大图（JDK-8-）" class="headerlink" title="1.1 内存大图（JDK 8+）"></a>1.1 内存大图（JDK 8+）</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────────────┐</span><br><span class="line">│                    JVM 运行时数据区                         │</span><br><span class="line">├──────────────────────┬──────────────────────────────────┤</span><br><span class="line">│  线程私有（随线程生灭）  │   线程共享                          │</span><br><span class="line">├──────────────────────┼──────────────────────────────────┤</span><br><span class="line">│ ① 程序计数器           │ ⑤ 堆 Heap（GC 主战场）              │</span><br><span class="line">│    当前字节码行号       │    对象实例、数组                     │</span><br><span class="line">│    唯一不会 OOM 的区域  │    分代：新生代 + 老年代             │</span><br><span class="line">├──────────────────────┼──────────────────────────────────┤</span><br><span class="line">│ ② 虚拟机栈（JVM Stack）│ ⑥ 方法区 / 元空间 Metaspace（JDK8+） │</span><br><span class="line">│    栈帧：局部变量表     │    类信息、常量、静态变量、方法元数据    │</span><br><span class="line">│    操作数栈、动态链接   │    本地内存，受 MaxMetaspaceSize 限制 │</span><br><span class="line">│    → StackOverflow    │                                  │</span><br><span class="line">├──────────────────────┼──────────────────────────────────┤</span><br><span class="line">│ ③ 本地方法栈           │ （直接内存 Direct Memory——堆外）     │</span><br><span class="line">│    给 Native 方法用    │    NIO 的 ByteBuffer.allocateDirect │</span><br><span class="line">├──────────────────────┼──────────────────────────────────┤</span><br><span class="line">│ ④ 直接内存（也线程私有逻辑）│                                  │</span><br><span class="line">└──────────────────────┴──────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>区域</th>
+<th>线程私有&#x2F;共享</th>
+<th>存什么</th>
+<th>异常</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>程序计数器</td>
+<td>私有</td>
+<td>当前字节码指令地址</td>
+<td>无（唯一不 OOM）</td>
+</tr>
+<tr>
+<td>虚拟机栈</td>
+<td>私有</td>
+<td>栈帧（局部变量&#x2F;操作数栈）</td>
+<td><code>StackOverflowError</code>（太深）、<code>OutOfMemoryError</code>（线程太多）</td>
+</tr>
+<tr>
+<td>本地方法栈</td>
+<td>私有</td>
+<td>Native 方法调用</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>堆</td>
+<td>共享</td>
+<td><strong>所有对象实例</strong></td>
+<td><code>OutOfMemoryError: Java heap space</code></td>
+</tr>
+<tr>
+<td>方法区&#x2F;元空间</td>
+<td>共享</td>
+<td>类元数据、常量池</td>
+<td><code>OutOfMemoryError: Metaspace</code></td>
+</tr>
+<tr>
+<td>直接内存</td>
+<td>共享（逻辑）</td>
+<td>NIO 缓冲区</td>
+<td><code>OutOfMemoryError: Direct buffer memory</code></td>
+</tr>
+</tbody></table>
+<h3 id="1-2-堆的分代结构"><a href="#1-2-堆的分代结构" class="headerlink" title="1.2 堆的分代结构"></a>1.2 堆的分代结构</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">                    堆（Heap）</span><br><span class="line">┌────────────────────────────────────┐</span><br><span class="line">│  新生代 Young        │   老年代 Old  │</span><br><span class="line">│ ┌─────┬────┬────┐   │              │</span><br><span class="line">│ │Eden │ S0 │ S1 │   │              │</span><br><span class="line">│ └─────┴────┴────┘   │              │</span><br><span class="line">│ 默认比例 8:1:1       │              │</span><br><span class="line">└────────────────────────────────────┘</span><br><span class="line">   对象先到 Eden → 熬过 GC 进 Survivor → 年龄够了/放不下 → 老年代</span><br></pre></td></tr></table></figure>
+
+<p><strong>为什么分代</strong>：绝大多数对象<strong>朝生夕死</strong>（一次请求的 DTO、临时字符串），少量对象长期存活（缓存、连接池、Spring 单例）。分代后可以用不同算法对付不同区域，性价比最高。</p>
+<hr>
+<h2 id="二、对象的一生：从-Eden-到老年代"><a href="#二、对象的一生：从-Eden-到老年代" class="headerlink" title="二、对象的一生：从 Eden 到老年代"></a>二、对象的一生：从 Eden 到老年代</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">① 创建：new 出来的对象优先分配在 Eden 区</span><br><span class="line">    （大对象直接进老年代：-XX:PretenureSizeThreshold，避免新生代频繁复制大对象）</span><br><span class="line">        ↓</span><br><span class="line">② Eden 满 → 触发 Minor GC（Young GC）</span><br><span class="line">        ↓</span><br><span class="line">③ 存活对象复制到 Survivor，年龄 +1（默认 MaxTenuringThreshold=15）</span><br><span class="line">        ↓</span><br><span class="line">④ 年龄达到阈值 或 Survivor 放不下 → 晋升老年代</span><br><span class="line">        ↓</span><br><span class="line">⑤ 老年代满 → Major GC / Full GC（重、慢、STW 长）</span><br><span class="line">        ↓</span><br><span class="line">⑥ 空间分配担保失败 → OOM（Java heap space）</span><br></pre></td></tr></table></figure>
+
+<p><strong>空间分配担保</strong>：Minor GC 前，JVM 检查老年代最大连续空间是否大于新生代对象总大小，不足则看 <code>-XX:HandlePromotionFailure</code>——担保失败直接升级为 Full GC，防止晋升时老年代装不下。</p>
+<hr>
+<h2 id="三、怎么判定垃圾：可达性分析"><a href="#三、怎么判定垃圾：可达性分析" class="headerlink" title="三、怎么判定垃圾：可达性分析"></a>三、怎么判定垃圾：可达性分析</h2><h3 id="3-1-为什么不用引用计数法"><a href="#3-1-为什么不用引用计数法" class="headerlink" title="3.1 为什么不用引用计数法"></a>3.1 为什么不用引用计数法</h3><p>引用计数（引用 +1&#x2F;-1，归零回收）实现简单，但<strong>解决不了循环引用</strong>：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Node</span> &#123; Node next; &#125;</span><br><span class="line"><span class="type">Node</span> <span class="variable">a</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Node</span>(); <span class="type">Node</span> <span class="variable">b</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Node</span>();</span><br><span class="line">a.next = b; b.next = a;</span><br><span class="line">a = <span class="literal">null</span>; b = <span class="literal">null</span>;   <span class="comment">// 互相引用，计数永远不为 0 → 泄漏</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-可达性分析（JVM-实际使用）"><a href="#3-2-可达性分析（JVM-实际使用）" class="headerlink" title="3.2 可达性分析（JVM 实际使用）"></a>3.2 可达性分析（JVM 实际使用）</h3><p>从 <strong>GC Roots</strong> 出发向下遍历引用链，<strong>不可达的对象 &#x3D; 垃圾</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">GC Roots 包括：</span><br><span class="line">  ① 虚拟机栈中局部变量引用的对象</span><br><span class="line">  ② 静态变量（类属性）引用的对象</span><br><span class="line">  ③ 常量引用的对象</span><br><span class="line">  ④ JNI（Native 方法）引用的对象</span><br><span class="line">  ⑤ 活跃线程、synchronized 锁对象等</span><br><span class="line"></span><br><span class="line">       GC Roots</span><br><span class="line">        /   \</span><br><span class="line">       A     B</span><br><span class="line">      /       \</span><br><span class="line">     C         D      ← A、B、C、D 都存活</span><br><span class="line">   E  F</span><br><span class="line">   E、F 无引用链 → 垃圾</span><br></pre></td></tr></table></figure>
+
+<p><strong>面试追问：被判定为垃圾会被立刻回收吗？</strong><br>不会。至少要经历两次标记：</p>
+<ol>
+<li>第一次标记不可达 → 筛选是否有 <code>finalize()</code> → 加入 F-Queue 由 Finalizer 线程执行；</li>
+<li>执行后仍未自救（finalize 里重新赋值引用）→ 第二次标记，才真正回收。<blockquote>
+<p><code>finalize()</code> 已标记废弃（JDK 9+），<strong>永远不要依赖它</strong>释放资源（不确定性 + 性能差），用 try-with-resources 或 Cleaner。</p>
+</blockquote>
+</li>
+</ol>
+<hr>
+<h2 id="四、垃圾回收四大算法"><a href="#四、垃圾回收四大算法" class="headerlink" title="四、垃圾回收四大算法"></a>四、垃圾回收四大算法</h2><h3 id="4-1-标记-清除（Mark-Sweep）"><a href="#4-1-标记-清除（Mark-Sweep）" class="headerlink" title="4.1 标记-清除（Mark-Sweep）"></a>4.1 标记-清除（Mark-Sweep）</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">① 标记存活对象</span><br><span class="line">② 清除未标记对象</span><br><span class="line"></span><br><span class="line">[存活][垃圾][存活][垃圾][垃圾][存活]</span><br><span class="line">  → 清除后：</span><br><span class="line">[存活][空洞][存活][空洞][空洞][存活]</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>✅ 实现简单；❌ <strong>产生内存碎片</strong>（大对象可能找不到连续空间）、效率一般。</li>
+</ul>
+<h3 id="4-2-复制算法（Copying）"><a href="#4-2-复制算法（Copying）" class="headerlink" title="4.2 复制算法（Copying）"></a>4.2 复制算法（Copying）</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">把内存分为两块（Eden + Survivor 结构是它的改良），每次只用一块：</span><br><span class="line">GC 时把存活对象复制到另一块，一次性清空原块。</span><br><span class="line"></span><br><span class="line">✅ 无碎片、回收快</span><br><span class="line">❌ 需要额外空间；存活对象多时复制成本高</span><br><span class="line">👉 特别适合新生代：对象大多朝生夕死，存活率低，复制成本小</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-标记-整理（Mark-Compact）"><a href="#4-3-标记-整理（Mark-Compact）" class="headerlink" title="4.3 标记-整理（Mark-Compact）"></a>4.3 标记-整理（Mark-Compact）</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">① 标记存活对象</span><br><span class="line">② 把所有存活对象向一端移动（压缩）</span><br><span class="line">③ 清理边界以外的内存</span><br><span class="line"></span><br><span class="line">✅ 无碎片          ❌ 移动对象有成本，停顿可能更长</span><br><span class="line">👉 适合老年代：存活率高，复制不划算，整理可消除碎片</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-4-分代收集（实际策略）"><a href="#4-4-分代收集（实际策略）" class="headerlink" title="4.4 分代收集（实际策略）"></a>4.4 分代收集（实际策略）</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">新生代：复制算法（存活少、无碎片、快）</span><br><span class="line">老年代：标记-清除 或 标记-整理（存活多、复制不划算）</span><br><span class="line">不同收集器实现细节不同，但总体都是这个思路</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="五、Minor-GC-Major-GC-Full-GC-与-STW"><a href="#五、Minor-GC-Major-GC-Full-GC-与-STW" class="headerlink" title="五、Minor GC &#x2F; Major GC &#x2F; Full GC 与 STW"></a>五、Minor GC &#x2F; Major GC &#x2F; Full GC 与 STW</h2><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>范围</th>
+<th>频率</th>
+<th>停顿</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Minor GC &#x2F; Young GC</td>
+<td>新生代</td>
+<td>高（Eden 满就触发）</td>
+<td>短（毫秒级）</td>
+</tr>
+<tr>
+<td>Major GC</td>
+<td>老年代</td>
+<td>低</td>
+<td>长</td>
+</tr>
+<tr>
+<td>Full GC</td>
+<td>整个堆 + 元空间</td>
+<td>最低</td>
+<td><strong>最长（秒级）</strong>，线上最怕</td>
+</tr>
+</tbody></table>
+<p><strong>STW（Stop The World）</strong>：GC 某些阶段必须暂停所有用户线程（业务线程全停），否则对象引用关系在变，标记不准确。所以：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">线上接口 RT 抖动 → 第一怀疑对象就是 GC 停顿（而不是代码慢）</span><br><span class="line">调优的核心目标：减少 Full GC 次数、缩短 GC 停顿</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="六、垃圾收集器全景与选型"><a href="#六、垃圾收集器全景与选型" class="headerlink" title="六、垃圾收集器全景与选型"></a>六、垃圾收集器全景与选型</h2><h3 id="6-1-收集器图谱"><a href="#6-1-收集器图谱" class="headerlink" title="6.1 收集器图谱"></a>6.1 收集器图谱</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">新生代收集器            老年代收集器            全堆/大堆收集器</span><br><span class="line">Serial（单线程）        Serial Old            G1（分 Region，JDK9+ 默认）</span><br><span class="line">ParNew（多线程）        CMS（并发低停顿）      ZGC（JDK15+ 可上，亚毫秒）</span><br><span class="line">Parallel Scavenge      Parallel Old（吞吐优先） Shenandoah</span><br><span class="line">（吞吐优先）</span><br></pre></td></tr></table></figure>
+
+<h3 id="6-2-逐个要点"><a href="#6-2-逐个要点" class="headerlink" title="6.2 逐个要点"></a>6.2 逐个要点</h3><p><strong>① Serial &#x2F; Serial Old</strong>：单线程收集，GC 时一个线程 + 全程 STW。简单、单核小内存开销低，其余场景不推荐。</p>
+<p><strong>② Parallel Scavenge &#x2F; Parallel Old</strong>：多线程 + <strong>吞吐量优先</strong>（<code>-XX:UseParallelGC</code>，JDK8 默认）。适合后台计算、对停顿不敏感的场景。</p>
+<p><strong>③ CMS（Concurrent Mark Sweep）</strong>：老年代<strong>低停顿</strong>收集器，曾经的经典，JDK9 起标记废弃：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">初始标记(STW，极短) → 并发标记(和业务线程一起跑) → 重新标记(STW) → 并发清除</span><br></pre></td></tr></table></figure>
+
+<p>❌ 缺点：内存碎片（标记-清除）、对 CPU 敏感、并发模式失败（Concurrent Mode Failure）会退化成 Serial Old 导致长停顿。</p>
+<p><strong>④ G1（Garbage First）—— 当前服务端默认（JDK9+）</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">不再按连续的新生代/老年代布局，而是把堆划分为 2048 个等大的 Region：</span><br><span class="line">┌──┬──┬──┬──┬──┐</span><br><span class="line">│E │E │O │S │E │   每个 Region 动态扮演 Eden/Survivor/Old/Humongous</span><br><span class="line">├──┼──┼──┼──┼──┤</span><br><span class="line">│O │O │E │H │O │   H = 大对象区（超大对象直接进 Humongous）</span><br><span class="line">└──┴──┴──┴──┴──┘</span><br><span class="line"></span><br><span class="line">核心：优先回收&quot;垃圾最多、收益最大&quot;的 Region（Garbage First 的由来）</span><br><span class="line">特点：可预测停顿（-XX:MaxGCPauseMillis=200 是目标不是强保证）</span><br><span class="line">      ✅ 无碎片 ✅ 大堆友好 ✅ 并发标记</span><br></pre></td></tr></table></figure>
+
+<p><strong>⑤ ZGC（JDK 15+）</strong>：<strong>亚毫秒级停顿</strong>（通常 &lt;1ms），支持超大堆（16TB），用<strong>着色指针 + 读屏障</strong>实现并发转移。适合对延迟极敏感的大堆服务。</p>
+<p><strong>⑥ Shenandoah</strong>：与 ZGC 思路接近（并发转移），RedHat 出品，同样低停顿。</p>
+<h3 id="6-3-选型总结"><a href="#6-3-选型总结" class="headerlink" title="6.3 选型总结"></a>6.3 选型总结</h3><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>选择</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>小应用&#x2F;单核小内存</td>
+<td>Serial &#x2F; Parallel</td>
+</tr>
+<tr>
+<td>常规线上服务</td>
+<td><strong>G1</strong>（现代默认，稳）</td>
+</tr>
+<tr>
+<td>超低延迟 + 大堆</td>
+<td>ZGC &#x2F; Shenandoah</td>
+</tr>
+<tr>
+<td>老系统存量</td>
+<td>Parallel（JDK8 默认）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>面试话术：<strong>没有银弹收集器</strong>——先 G1 跑起来，用监控数据说话，停顿不达标再评估 ZGC。</p>
+</blockquote>
+<hr>
+<h2 id="七、JMM：Java-内存模型与并发三特性"><a href="#七、JMM：Java-内存模型与并发三特性" class="headerlink" title="七、JMM：Java 内存模型与并发三特性"></a>七、JMM：Java 内存模型与并发三特性</h2><h3 id="7-1-内存模型长啥样"><a href="#7-1-内存模型长啥样" class="headerlink" title="7.1 内存模型长啥样"></a>7.1 内存模型长啥样</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">┌─────────── 每个线程 ───────────┐        ┌──────────────┐</span><br><span class="line">│  线程A 工作内存（本地缓存/寄存器） │        │   主内存      │</span><br><span class="line">│  ┌──────────────┐             │        │  ┌────────┐  │</span><br><span class="line">│  │ 变量副本 x=1  │◀──读写──────▶│        │  │  x=1   │  │</span><br><span class="line">│  └──────────────┘             │        │  └────────┘  │</span><br><span class="line">└───────────────────────────────┘        │  共享变量     │</span><br><span class="line">┌─────────── 每个线程 ───────────┐        └──────────────┘</span><br><span class="line">│  线程B 工作内存                │</span><br><span class="line">│  ┌──────────────┐             │</span><br><span class="line">│  │ 变量副本 x=1  │◀──读写──────▶│</span><br><span class="line">│  └──────────────┘             │</span><br><span class="line">└───────────────────────────────┘</span><br><span class="line"></span><br><span class="line">问题：线程A 改了副本 x=2，还没刷回主内存，线程B 读到的还是 1 → 可见性问题</span><br></pre></td></tr></table></figure>
+
+<p><strong>JMM 规范</strong>：所有共享变量存主内存；每个线程有私有工作内存，操作必须在工作内存完成，通过”store&#x2F;load”与主内存同步。<strong>它解决的是”多线程读写的内存可见性、有序性、原子性问题如何保证”</strong>。</p>
+<h3 id="7-2-并发三特性与手段"><a href="#7-2-并发三特性与手段" class="headerlink" title="7.2 并发三特性与手段"></a>7.2 并发三特性与手段</h3><table>
+<thead>
+<tr>
+<th>特性</th>
+<th>问题</th>
+<th>解决手段</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>原子性</td>
+<td>操作被中断（i++ 不是原子的）</td>
+<td>synchronized &#x2F; Lock &#x2F; CAS &#x2F; 原子类</td>
+</tr>
+<tr>
+<td>可见性</td>
+<td>修改对其他线程不可见</td>
+<td>volatile &#x2F; synchronized &#x2F; final</td>
+</tr>
+<tr>
+<td>有序性</td>
+<td>指令重排导致乱序</td>
+<td>volatile（禁止重排）&#x2F; happens-before</td>
+</tr>
+</tbody></table>
+<h3 id="7-3-volatile-的原理（面试必考）"><a href="#7-3-volatile-的原理（面试必考）" class="headerlink" title="7.3 volatile 的原理（面试必考）"></a>7.3 volatile 的原理（面试必考）</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">volatile</span> <span class="type">int</span> <span class="variable">flag</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line"><span class="comment">// 写：直接写主内存（store 屏障，同时禁止写写重排）</span></span><br><span class="line"><span class="comment">// 读：直接从主内存读（load 屏障，同时禁止读写重排）</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>volatile 能保证</strong>：✅ 可见性（写后立即刷主内存 + 失效其他线程缓存行）、✅ 有序性（禁止指令重排——DCL 单例靠它）。<br><strong>volatile 不能保证</strong>：❌ 原子性（<code>count++</code> 仍是读-改-写三步，volatile 帮不了）。</p>
+<p><strong>单例 DCL 为什么需要 volatile</strong>：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Singleton</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">volatile</span> Singleton instance;   <span class="comment">// 必须有 volatile</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Singleton <span class="title function_">getInstance</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (instance == <span class="literal">null</span>) &#123;                    <span class="comment">// ① 检查</span></span><br><span class="line">            <span class="keyword">synchronized</span> (Singleton.class) &#123;</span><br><span class="line">                <span class="keyword">if</span> (instance == <span class="literal">null</span>) &#123;</span><br><span class="line">                    instance = <span class="keyword">new</span> <span class="title class_">Singleton</span>();    <span class="comment">// ② 创建</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> instance;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 原因：new Singleton() 三步 = 分配内存 → 初始化 → 赋值引用</span></span><br><span class="line"><span class="comment">// 无 volatile 时可能&quot;先赋值引用、后初始化&quot;（指令重排）</span></span><br><span class="line"><span class="comment">// → 线程B 在 ① 处读到未初始化的半成品对象</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="7-4-happens-before-规则（背-8-条中的核心-6-条）"><a href="#7-4-happens-before-规则（背-8-条中的核心-6-条）" class="headerlink" title="7.4 happens-before 规则（背 8 条中的核心 6 条）"></a>7.4 happens-before 规则（背 8 条中的核心 6 条）</h3><table>
+<thead>
+<tr>
+<th>规则</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>程序次序规则</td>
+<td>单线程内，写在前面的操作 happens-before 后面的</td>
+</tr>
+<tr>
+<td>锁规则</td>
+<td>unlock happens-before 后续 lock（同一个锁）</td>
+</tr>
+<tr>
+<td>volatile 规则</td>
+<td>volatile 写 happens-before 后续读（同一个变量）</td>
+</tr>
+<tr>
+<td>传递性</td>
+<td>A→B、B→C 则 A→C</td>
+</tr>
+<tr>
+<td>线程启动规则</td>
+<td>start() happens-before 该线程内所有操作</td>
+</tr>
+<tr>
+<td>线程终结&#x2F;中断规则</td>
+<td>线程内操作 happens-before join() 返回 &#x2F; 被中断线程检测到中断</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>面试点：<strong>只要满足 happens-before，就不需要额外加同步</strong>；JMM 允许不满足该规则的重排，但保证”结果不会变”。</p>
+</blockquote>
+<hr>
+<h2 id="八、类加载机制与双亲委派"><a href="#八、类加载机制与双亲委派" class="headerlink" title="八、类加载机制与双亲委派"></a>八、类加载机制与双亲委派</h2><h3 id="8-1-类加载的五个阶段"><a href="#8-1-类加载的五个阶段" class="headerlink" title="8.1 类加载的五个阶段"></a>8.1 类加载的五个阶段</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">加载 → 验证 → 准备 → 解析 → 初始化</span><br><span class="line"> (Loading)(Verify)(Prepare)(Resolve)(Initialize)</span><br></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>干什么</th>
+<th>关键点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>加载</td>
+<td>读字节码 → 生成 Class 对象</td>
+<td>来源：class 文件、jar、网络、动态代理生成</td>
+</tr>
+<tr>
+<td>验证</td>
+<td>校验字节码格式、语义</td>
+<td>防恶意&#x2F;损坏字节码</td>
+</tr>
+<tr>
+<td>准备</td>
+<td>为<strong>静态变量分配内存并赋默认值</strong></td>
+<td><code>static int a = 10</code> → 此阶段 a &#x3D; <strong>0</strong>（10 在初始化阶段赋）</td>
+</tr>
+<tr>
+<td>解析</td>
+<td>符号引用 → 直接引用</td>
+<td>把常量池里的符号变成实际内存地址</td>
+</tr>
+<tr>
+<td>初始化</td>
+<td>执行 <code>&lt;clinit&gt;</code>（静态代码块、静态变量赋值）</td>
+<td>只有”主动使用”才触发：new、访问静态成员、反射、main 类</td>
+</tr>
+</tbody></table>
+<h3 id="8-2-双亲委派模型（核心！）"><a href="#8-2-双亲委派模型（核心！）" class="headerlink" title="8.2 双亲委派模型（核心！）"></a>8.2 双亲委派模型（核心！）</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">Bootstrap ClassLoader（启动类加载器）</span><br><span class="line">JVM 自带，加载 rt.jar 核心类库，C++ 实现，null</span><br><span class="line">          ↑ 委派</span><br><span class="line">Extension ClassLoader（扩展类加载器）</span><br><span class="line">JDK9+ 为 Platform ClassLoader，加载扩展包</span><br><span class="line">          ↑ 委派</span><br><span class="line">Application ClassLoader（应用类加载器）</span><br><span class="line">加载 classpath 下的类，我们自己写的类</span><br><span class="line">          ↑ 委派</span><br><span class="line">（自定义 ClassLoader：继承 ClassLoader 重写 findClass）</span><br></pre></td></tr></table></figure>
+
+<p><strong>流程</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">加载类 X 时：</span><br><span class="line">  ① 先问父加载器&quot;你能加载吗？&quot;（层层向上委派到 Bootstrap）</span><br><span class="line">  ② 父加载器加载成功 → 用它；失败 → 才自己加载</span><br></pre></td></tr></table></figure>
+
+<p><strong>为什么要双亲委派</strong>（面试三问）：</p>
+<ol>
+<li><strong>避免核心类被篡改</strong>：<code>java.lang.String</code> 永远由 Bootstrap 加载，应用写个 <code>String</code> 也加载不了（同名类委托给父加载器，保证核心库唯一）；</li>
+<li><strong>避免重复加载</strong>：同一个类只被加载一次；</li>
+<li><strong>保证类加载的一致性</strong>：类相等 &#x3D; 同一个 ClassLoader 加载的同一个全限定名。</li>
+</ol>
+<h3 id="8-3-如何破坏双亲委派（JDBC-经典）"><a href="#8-3-如何破坏双亲委派（JDBC-经典）" class="headerlink" title="8.3 如何破坏双亲委派（JDBC 经典）"></a>8.3 如何破坏双亲委派（JDBC 经典）</h3><p><strong>问题</strong>：<code>DriverManager</code> 在 rt.jar（Bootstrap 加载），它要 <code>Class.forName</code> 加载 MySQL 驱动——驱动在 classpath（应用加载器管辖）→ <strong>父加载器看不到子加载器路径的类</strong>。</p>
+<p><strong>解法</strong>：<strong>SPI（Service Provider Interface）+ 线程上下文类加载器</strong>：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// DriverManager 里：</span></span><br><span class="line">Class.forName(driverName, <span class="literal">true</span>, Thread.currentThread().getContextClassLoader());</span><br><span class="line"><span class="comment">// 把父加载器&quot;委托&quot;给子加载器去加载 → 打破双亲委派</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>其他破坏场景</strong>：Tomcat 的 WebAppClassLoader（每个应用独立加载，先自己加载再委派——实现应用隔离）、OSGi 热部署、Spring Boot Fat Jar（JarLauncher）。</p>
+<blockquote>
+<p>面试话术：双亲委派是<strong>默认模型</strong>，不是强制；JDBC&#x2F;SPI、Tomcat 容器、热部署都需要按需打破——本质是”父加载器够不到子加载器的类”时的解决方案。</p>
+</blockquote>
+<hr>
+<h2 id="九、常量池与-String-的奥秘"><a href="#九、常量池与-String-的奥秘" class="headerlink" title="九、常量池与 String 的奥秘"></a>九、常量池与 String 的奥秘</h2><h3 id="9-1-三类”常量池”别搞混"><a href="#9-1-三类”常量池”别搞混" class="headerlink" title="9.1 三类”常量池”别搞混"></a>9.1 三类”常量池”别搞混</h3><table>
+<thead>
+<tr>
+<th>名称</th>
+<th>位置</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Class 文件常量池</td>
+<td>class 文件里</td>
+<td>编译期常量、符号引用</td>
+</tr>
+<tr>
+<td>运行时常量池</td>
+<td>方法区&#x2F;元空间</td>
+<td>class 常量池加载后的形态</td>
+</tr>
+<tr>
+<td><strong>字符串常量池</strong></td>
+<td><strong>堆</strong>（JDK7+）</td>
+<td>字符串字面量、<code>intern()</code> 结果</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>JDK6 字符串常量池在永久代；JDK7 起移到堆（为了能用 GC 回收、避免 PermGen OOM）。</p>
+</blockquote>
+<h3 id="9-2-经典-String-面试题"><a href="#9-2-经典-String-面试题" class="headerlink" title="9.2 经典 String 面试题"></a>9.2 经典 String 面试题</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">String</span> <span class="variable">a</span> <span class="operator">=</span> <span class="string">&quot;abc&quot;</span>;                 <span class="comment">// 字面量 → 字符串常量池（没有就创建）</span></span><br><span class="line"><span class="type">String</span> <span class="variable">b</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">String</span>(<span class="string">&quot;abc&quot;</span>);     <span class="comment">// new → 堆上对象；&quot;abc&quot; 字面量仍指向常量池</span></span><br><span class="line"><span class="type">String</span> <span class="variable">c</span> <span class="operator">=</span> a.intern();            <span class="comment">// 常量池里已有 &quot;abc&quot; → 返回常量池引用</span></span><br><span class="line"></span><br><span class="line">a == c            <span class="comment">// true：a 就是常量池引用</span></span><br><span class="line">b == a            <span class="comment">// false：b 是堆对象</span></span><br><span class="line">b.intern() == a   <span class="comment">// true：intern() 返回常量池引用</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>拼接的区别</strong>：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">String</span> <span class="variable">s1</span> <span class="operator">=</span> <span class="string">&quot;a&quot;</span> + <span class="string">&quot;b&quot;</span>;            <span class="comment">// 编译期常量折叠 → 等于 &quot;ab&quot;（常量池）</span></span><br><span class="line"><span class="type">String</span> <span class="variable">s2</span> <span class="operator">=</span> <span class="string">&quot;ab&quot;</span>;                 <span class="comment">// true：s1 == s2</span></span><br><span class="line"></span><br><span class="line"><span class="type">String</span> <span class="variable">x</span> <span class="operator">=</span> <span class="string">&quot;a&quot;</span>;</span><br><span class="line"><span class="type">String</span> <span class="variable">s3</span> <span class="operator">=</span> x + <span class="string">&quot;b&quot;</span>;              <span class="comment">// 运行时拼接 → new StringBuilder → 堆对象</span></span><br><span class="line">s3 == s2                          <span class="comment">// false</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>intern() 陷阱（JDK6 vs JDK7+）</strong>：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// JDK6：intern 创建的是永久代副本，堆上的原对象与副本不同</span></span><br><span class="line"><span class="comment">// JDK7+：intern 直接返回常量池引用（堆上的对象可能直接被引用）</span></span><br><span class="line"><span class="type">String</span> <span class="variable">s</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">String</span>(<span class="string">&quot;a&quot;</span>) + <span class="keyword">new</span> <span class="title class_">String</span>(<span class="string">&quot;b&quot;</span>);  <span class="comment">// s = 堆对象 &quot;ab&quot;（池里没有）</span></span><br><span class="line">s.intern();                                     <span class="comment">// JDK7+：池里记录 s 的引用</span></span><br><span class="line"><span class="type">String</span> <span class="variable">t</span> <span class="operator">=</span> <span class="string">&quot;ab&quot;</span>;                                 <span class="comment">// 直接命中 → 与 s 同一个对象</span></span><br><span class="line">s == t          <span class="comment">// JDK7+：true（池里存的是引用）；JDK6：false</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>面试结论：<strong>字面量进池、new 进堆、intern() 把堆对象注册进池</strong>；JDK7+ 字符串常量池在堆，且 intern 存的可能是对象引用。</p>
+</blockquote>
+<hr>
+<h2 id="十、OOM-与内存泄漏全场景"><a href="#十、OOM-与内存泄漏全场景" class="headerlink" title="十、OOM 与内存泄漏全场景"></a>十、OOM 与内存泄漏全场景</h2><h3 id="10-1-OOM-五兄弟"><a href="#10-1-OOM-五兄弟" class="headerlink" title="10.1 OOM 五兄弟"></a>10.1 OOM 五兄弟</h3><table>
+<thead>
+<tr>
+<th>异常信息</th>
+<th>场景</th>
+<th>常见原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Java heap space</code></td>
+<td>堆内存不足</td>
+<td>对象太多、缓存无界、泄漏</td>
+</tr>
+<tr>
+<td><code>Metaspace</code></td>
+<td>元空间不足</td>
+<td>动态生成类太多（反射&#x2F;代理&#x2F;热部署&#x2F;Groovy）</td>
+</tr>
+<tr>
+<td><code>StackOverflowError</code></td>
+<td>栈溢出</td>
+<td>递归太深、无限递归</td>
+</tr>
+<tr>
+<td><code>Direct buffer memory</code></td>
+<td>直接内存不足</td>
+<td>NIO 缓冲区没释放、分配过大</td>
+</tr>
+<tr>
+<td><code>unable to create new native thread</code></td>
+<td>线程数超限</td>
+<td>线程池无限创建、系统线程数&#x2F;内存限制</td>
+</tr>
+</tbody></table>
+<h3 id="10-2-经典内存泄漏模式（对象该释放但被引用链卡住）"><a href="#10-2-经典内存泄漏模式（对象该释放但被引用链卡住）" class="headerlink" title="10.2 经典内存泄漏模式（对象该释放但被引用链卡住）"></a>10.2 经典内存泄漏模式（对象该释放但被引用链卡住）</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">① 静态集合无限增长：static List&lt;Object&gt; cache 只加不清</span><br><span class="line">② 无界缓存：Map 缓存不设上限/不过期</span><br><span class="line">③ ThreadLocal 未 remove：线程池复用线程 → ThreadLocalMap 的 Entry 泄漏</span><br><span class="line">   （ThreadLocal 的 key 是弱引用，value 是强引用 → 必须用完 remove()）</span><br><span class="line">④ 监听器/回调未注销</span><br><span class="line">⑤ 连接/流未关闭</span><br></pre></td></tr></table></figure>
+
+<p><strong>判断是不是泄漏</strong>：Full GC 后老年代占用<strong>降不下来</strong> &#x3D; 泄漏；能降下来 &#x3D; 只是内存不够&#x2F;对象存活太多。</p>
+<h3 id="10-3-容器环境的特殊坑"><a href="#10-3-容器环境的特殊坑" class="headerlink" title="10.3 容器环境的特殊坑"></a>10.3 容器环境的特殊坑</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">容器限制 4G，但 JVM 看到的可能是宿主机内存（未识别 cgroup 限制）</span><br><span class="line">实际占用 = 堆 + Metaspace + Direct Memory + Thread Stack + Code Cache + Native</span><br><span class="line">  → 给堆设 6G 不代表总内存只用 6G</span><br><span class="line">  → 容器被杀（OOMKilled）≠ JVM 抛 OOM，可能是 RSS 超限被内核杀了</span><br><span class="line">解法：-XX:MaxRAMPercentage=75 或 -XX:+UseContainerSupport（JDK8u191+）</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="十一、JVM-常用参数详解"><a href="#十一、JVM-常用参数详解" class="headerlink" title="十一、JVM 常用参数详解"></a>十一、JVM 常用参数详解</h2><h3 id="11-1-堆与内存"><a href="#11-1-堆与内存" class="headerlink" title="11.1 堆与内存"></a>11.1 堆与内存</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">-Xms4g                  <span class="comment"># 初始堆大小（建议 = -Xmx，避免动态扩容抖动）</span></span><br><span class="line">-Xmx4g                  <span class="comment"># 最大堆大小</span></span><br><span class="line">-Xmn2g                  <span class="comment"># 新生代大小</span></span><br><span class="line">-XX:NewRatio=2          <span class="comment"># 新生代:老年代 = 1:2</span></span><br><span class="line">-XX:SurvivorRatio=8     <span class="comment"># Eden:Survivor = 8:1:1</span></span><br><span class="line">-XX:MaxMetaspaceSize=512m   <span class="comment"># 元空间上限（默认无上限，易被忽略）</span></span><br><span class="line">-XX:MaxDirectMemorySize=1g  <span class="comment"># 直接内存上限（默认=堆大小）</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="11-2-GC-相关"><a href="#11-2-GC-相关" class="headerlink" title="11.2 GC 相关"></a>11.2 GC 相关</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">-XX:+UseG1GC                <span class="comment"># 使用 G1（JDK9+ 默认）</span></span><br><span class="line">-XX:+UseZGC                 <span class="comment"># 使用 ZGC（JDK15+）</span></span><br><span class="line">-XX:MaxGCPauseMillis=200    <span class="comment"># G1 停顿目标（软目标，非强保证）</span></span><br><span class="line">-XX:InitiatingHeapOccupancyPercent=45  <span class="comment"># G1 堆占用 45% 开始并发标记（IHOP）</span></span><br><span class="line">-XX:+HeapDumpOnOutOfMemoryError        <span class="comment"># OOM 时自动 dump（必开！）</span></span><br><span class="line">-XX:HeapDumpPath=/data/dump/           <span class="comment"># dump 路径</span></span><br><span class="line">-XX:MaxTenuringThreshold=15            <span class="comment"># 晋升年龄阈值</span></span><br><span class="line">-XX:PretenureSizeThreshold=1m          <span class="comment"># 超过 1MB 大对象直接进老年代</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="11-3-日志与容器"><a href="#11-3-日志与容器" class="headerlink" title="11.3 日志与容器"></a>11.3 日志与容器</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># JDK9+ 统一日志</span></span><br><span class="line">-Xlog:gc*:file=gc.log:<span class="keyword">time</span>,<span class="built_in">uptime</span>,level,tags</span><br><span class="line"><span class="comment"># 老版本</span></span><br><span class="line">-XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:gc.log</span><br><span class="line"></span><br><span class="line"><span class="comment"># 容器识别</span></span><br><span class="line">-XX:+UseContainerSupport</span><br><span class="line">-XX:MaxRAMPercentage=75</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="十二、JVM-调优的正确方法"><a href="#十二、JVM-调优的正确方法" class="headerlink" title="十二、JVM 调优的正确方法"></a>十二、JVM 调优的正确方法</h2><blockquote>
+<p>核心原则：<strong>调优不是背参数，是”看现象 → 找指标 → 定位根因 → 对症下药”</strong>，参数只是最后一步。</p>
+</blockquote>
+<h3 id="12-1-四步法"><a href="#12-1-四步法" class="headerlink" title="12.1 四步法"></a>12.1 四步法</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">第一步 看现象：CPU 高？内存涨？RT 抖？Full GC 频繁？OOM？容器被杀？</span><br><span class="line">        ↓</span><br><span class="line">第二步 收指标：Young GC 次数/停顿、Full GC 次数/停顿、Eden/Survivor/Old 使用率、</span><br><span class="line">              晋升速度、CPU、RT/P99、线程数</span><br><span class="line">        ↓</span><br><span class="line">第三步 看日志：GC 日志（哪类 GC、回收前后堆变化、停顿、promotion failure）</span><br><span class="line">        ↓</span><br><span class="line">第四步 定根因：见下表</span><br></pre></td></tr></table></figure>
+
+<h3 id="12-2-现象-→-根因对照表"><a href="#12-2-现象-→-根因对照表" class="headerlink" title="12.2 现象 → 根因对照表"></a>12.2 现象 → 根因对照表</h3><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>可能根因</th>
+<th>思路</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Young GC 频繁</td>
+<td>新生代太小 &#x2F; 临时对象太多</td>
+<td>调大堆或新生代；优化代码减少对象创建（循环内字符串拼接、重复序列化）</td>
+</tr>
+<tr>
+<td>老年代涨得快</td>
+<td>大对象直接进老年代 &#x2F; 长生命周期对象多 &#x2F; 晋升过快</td>
+<td>检查大对象、缓存、<code>PretenureSizeThreshold</code></td>
+</tr>
+<tr>
+<td>Full GC 频繁</td>
+<td>老年代不足 &#x2F; 元空间不足 &#x2F; <strong>内存泄漏</strong> &#x2F; 显式 <code>System.gc()</code></td>
+<td>先查泄漏（dump 分析），再考虑扩堆；禁用 System.gc（RMI 可配 <code>-XX:+DisableExplicitGC</code>）</td>
+</tr>
+<tr>
+<td>GC 停顿长</td>
+<td>堆太大 &#x2F; 老年代对象多 &#x2F; 碎片 &#x2F; 收集器不合适</td>
+<td>换 G1&#x2F;ZGC、调 IHOP、降低老年代压力</td>
+</tr>
+<tr>
+<td>容器被杀</td>
+<td>堆外内存超限</td>
+<td>检查 Direct&#x2F;Metaspace&#x2F;线程栈，用 MaxRAMPercentage</td>
+</tr>
+</tbody></table>
+<h3 id="12-3-经验原则"><a href="#12-3-经验原则" class="headerlink" title="12.3 经验原则"></a>12.3 经验原则</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">① 不要迷信参数：参数只能缓解，治不了泄漏</span><br><span class="line">② 先看业务对象生命周期：很多 GC 问题的根子在&quot;对象创建太猛/缓存太大/引用没释放&quot;</span><br><span class="line">③ Full GC 频繁优先查根因：扩堆只是延后爆炸时间</span><br><span class="line">④ 一切调优基于监控与日志：没有数据支撑的调优都是玄学</span><br><span class="line">⑤ 默认 G1，特殊场景再换：别为了新而新</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="十三、常用诊断工具"><a href="#十三、常用诊断工具" class="headerlink" title="十三、常用诊断工具"></a>十三、常用诊断工具</h2><table>
+<thead>
+<tr>
+<th>工具</th>
+<th>用途</th>
+<th>常用命令</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>jstat</strong></td>
+<td>看 GC 统计（次数&#x2F;耗时&#x2F;各区使用率）</td>
+<td><code>jstat -gcutil pid 1000</code></td>
+</tr>
+<tr>
+<td><strong>jmap</strong></td>
+<td>导出堆 dump、看堆概要</td>
+<td><code>jmap -dump:live,format=b,file=heap.hprof pid</code></td>
+</tr>
+<tr>
+<td><strong>jstack</strong></td>
+<td>看线程栈：死锁、阻塞、线程爆炸</td>
+<td><code>jstack pid</code>（<code>top -Hp</code> 找 CPU 高的线程转 16 进制查）</td>
+</tr>
+<tr>
+<td><strong>jcmd</strong></td>
+<td>综合诊断（新版推荐）</td>
+<td><code>jcmd pid GC.heap_info</code></td>
+</tr>
+<tr>
+<td><strong>jinfo</strong></td>
+<td>查看&#x2F;修改 JVM 参数</td>
+<td><code>jinfo -flags pid</code></td>
+</tr>
+<tr>
+<td><strong>MAT</strong></td>
+<td>分析 heap dump（Dominator Tree&#x2F;Leak Suspects&#x2F;Retained Size）</td>
+<td>图形界面</td>
+</tr>
+<tr>
+<td><strong>Arthas</strong></td>
+<td>线上神器：dashboard&#x2F;thread&#x2F;trace&#x2F;watch&#x2F;tt&#x2F;ognl 热改</td>
+<td><code>java -jar arthas-boot.jar</code></td>
+</tr>
+</tbody></table>
+<p><strong>排查套路（背下来）</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">CPU 高      → top 找进程 → top -Hp 找线程 → jstack 定位代码行</span><br><span class="line">内存涨/GC   → jstat 看 GC → jmap dump → MAT 分析谁占内存、谁引用</span><br><span class="line">线程问题    → jstack 看 BLOCKED/WAITING → 找锁等待链</span><br><span class="line">接口 RT 抖  → 先看 GC 停顿（jstat），再 trace 业务（Arthas）</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="十四、实战：一次-Full-GC-频繁的排查案例"><a href="#十四、实战：一次-Full-GC-频繁的排查案例" class="headerlink" title="十四、实战：一次 Full GC 频繁的排查案例"></a>十四、实战：一次 Full GC 频繁的排查案例</h2><p><strong>现象</strong>：接口 RT 抖动严重，CPU 正常，但每隔几分钟 1~2 秒卡顿。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">第一步：看监控</span><br><span class="line">   Full GC 次数高，单次停顿 1.5s</span><br><span class="line"></span><br><span class="line">第二步：看 GC 日志</span><br><span class="line">   老年代快满时频繁 Full GC，回收后老年代占用依然高位 → 疑似泄漏</span><br><span class="line"></span><br><span class="line">第三步：dump + MAT</span><br><span class="line">   jmap -dump:live,format=b,file=heap.hprof &lt;pid&gt;</span><br><span class="line">   MAT 的 Leak Suspects：某本地缓存 Map 一直增长，无淘汰机制</span><br><span class="line"></span><br><span class="line">第四步：处理</span><br><span class="line">   ① 给缓存加容量上限 + 过期策略（LRU）</span><br><span class="line">   ② 临时增大堆，避免立刻打爆</span><br><span class="line">   ③ 观察 Full GC 是否下降</span><br><span class="line">   ④ 评估 G1 停顿目标 / IHOP 参数</span><br></pre></td></tr></table></figure>
+
+<p><strong>结论</strong>：JVM 调优很多时候最终落到<strong>代码和对象生命周期设计</strong>上，不只是启动参数。</p>
+<hr>
+<h2 id="十五、面试模拟题与参考答案"><a href="#十五、面试模拟题与参考答案" class="headerlink" title="十五、面试模拟题与参考答案"></a>十五、面试模拟题与参考答案</h2><h3 id="基础类"><a href="#基础类" class="headerlink" title="基础类"></a>基础类</h3><p><strong>Q1：JVM 内存区域有哪些？哪些会 OOM？</strong><br>程序计数器（不 OOM）、虚拟机栈（StackOverflow&#x2F;OOM）、本地方法栈、堆（Java heap space）、方法区&#x2F;元空间（Metaspace）、直接内存（Direct buffer memory）。</p>
+<p><strong>Q2：为什么用可达性分析而不是引用计数？</strong><br>引用计数解决不了循环引用，且计数维护开销大；可达性分析从 GC Roots 出发，一次遍历即可判定。</p>
+<p><strong>Q3：新生代为什么用复制算法？</strong><br>新生代对象朝生夕死，存活率低，复制成本小且无碎片；老年代存活率高，复制不划算，用标记-清除&#x2F;标记-整理。</p>
+<p><strong>Q4：Minor GC 和 Full GC 的区别？为什么 Full GC 可怕？</strong><br>范围不同（新生代 vs 整个堆+元空间），Full GC 停顿长（秒级），直接影响线上 RT 和吞吐，所以线上最怕频繁 Full GC。</p>
+<p><strong>Q5：什么对象可以当 GC Roots？</strong><br>栈帧局部变量、静态变量、常量、JNI 引用、活跃线程、synchronized 锁对象等。</p>
+<h3 id="收集器类"><a href="#收集器类" class="headerlink" title="收集器类"></a>收集器类</h3><p><strong>Q6：CMS 和 G1 的区别？</strong><br>CMS：老年代并发低停顿，标记-清除有碎片，JDK9 废弃；G1：Region 化、可预测停顿（MaxGCPauseMillis 是目标）、无碎片、优先回收垃圾最多的 Region，JDK9+ 默认。</p>
+<p><strong>Q7：G1 为什么能预测停顿？</strong><br>G1 维护 Region 的回收收益（垃圾占比）队列，优先回收收益大的 Region，通过控制每轮回收的 Region 数量近似达到停顿目标。</p>
+<p><strong>Q8：ZGC 为什么停顿极短？</strong><br>着色指针 + 读屏障 + 并发转移，GC 与业务线程并发程度最高，STW 仅剩极短的同步点（&lt;1ms）。</p>
+<h3 id="JMM-与并发类"><a href="#JMM-与并发类" class="headerlink" title="JMM 与并发类"></a>JMM 与并发类</h3><p><strong>Q9：volatile 能保证什么？不能保证什么？</strong><br>保证可见性（写刷主内存、读失效缓存）和有序性（禁重排，DCL 需要）；不保证原子性（count++ 仍线程不安全）。</p>
+<p><strong>Q10：说几条 happens-before 规则。</strong><br>程序次序、锁规则（unlock before lock）、volatile 规则（写 before 读）、传递性、线程启动&#x2F;终结规则。</p>
+<p><strong>Q11：DCL 单例为什么加 volatile？</strong><br>new 的三步可能重排（先赋引用后初始化），另一个线程读到未初始化的半成品对象；volatile 禁止重排保证先初始化后发布引用。</p>
+<h3 id="类加载类"><a href="#类加载类" class="headerlink" title="类加载类"></a>类加载类</h3><p><strong>Q12：类加载过程？准备阶段 static int a &#x3D; 10 中 a 是多少？</strong><br>加载→验证→准备→解析→初始化；准备阶段 a &#x3D; <strong>0</strong>（默认值），初始化阶段才赋 10。</p>
+<p><strong>Q13：双亲委派是什么？为什么？</strong><br>类加载请求先委派父加载器，父加载不了才自己加载。好处：核心类不被篡改（String 永远 Bootstrap 加载）、避免重复加载、保证类一致。</p>
+<p><strong>Q14：怎么打破双亲委派？举例。</strong><br>重写 loadClass 不委派（如 Tomcat WebAppClassLoader 先自己加载实现应用隔离）；JDBC 通过<strong>线程上下文类加载器</strong>让 Bootstrap 加载的 DriverManager 能加载 classpath 的驱动（SPI）。</p>
+<p><strong>Q15：哪些情况会触发类初始化（主动使用）？</strong><br>new&#x2F;反射&#x2F;访问静态成员&#x2F;调用静态方法&#x2F;初始化子类（父类先初始化）&#x2F;main 类&#x2F;JDK7 动态语言支持。</p>
+<h3 id="常量池与-String"><a href="#常量池与-String" class="headerlink" title="常量池与 String"></a>常量池与 String</h3><p><strong>Q16：String s &#x3D; new String(“abc”) 创建了几个对象？</strong><br>2 个：堆上的 new 对象 + 常量池的 “abc”（若池中已有则 1 个）。</p>
+<p><strong>Q17：intern() 在 JDK6 和 JDK7+ 的区别？</strong><br>JDK6：常量池在永久代，intern 复制一份；JDK7+：常量池在堆，intern 首次记录引用（可能直接引用堆对象）。</p>
+<h3 id="OOM-与调优类"><a href="#OOM-与调优类" class="headerlink" title="OOM 与调优类"></a>OOM 与调优类</h3><p><strong>Q18：OOM 有哪些类型？线上排查步骤？</strong><br>heap space&#x2F;Metaspace&#x2F;StackOverflow&#x2F;Direct buffer&#x2F;native thread。步骤：GC 日志确认 GC 类型 → jstat 看各区 → jmap dump → MAT 分析 Dominator Tree&#x2F;Leak Suspects → 修代码（缓存&#x2F;线程池&#x2F;连接泄漏）。</p>
+<p><strong>Q19：内存泄漏怎么判断？</strong><br>Full GC 后老年代占用降不下来 &#x3D; 泄漏；能降下来 &#x3D; 只是内存不够。典型：静态集合、无界缓存、ThreadLocal 未 remove、监听器未注销。</p>
+<p><strong>Q20：线上 CPU 100% 怎么排查？</strong><br>top 找进程 → top -Hp 找线程（记下 PID 转 16 进制）→ jstack 查该线程栈 → 定位业务代码行 → 检查循环&#x2F;死锁&#x2F;GC 线程。</p>
+<hr>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>JVM 面试考察主线：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">内存结构（运行时数据区 / 分代）</span><br><span class="line">  → 垃圾回收（判定→算法→收集器→STW）</span><br><span class="line">  → 类加载（五阶段 / 双亲委派 / 破坏）</span><br><span class="line">  → JMM（三特性 / volatile / happens-before）</span><br><span class="line">  → 实战（OOM 排查 / 工具链 / 调优方法论）</span><br></pre></td></tr></table></figure>
+
+<p><strong>一句话记住每块</strong>：</p>
+<ol>
+<li><strong>内存</strong>：线程私有（栈&#x2F;计数器）不共享，堆是 GC 主战场，元空间管类。</li>
+<li><strong>GC</strong>：可达性分析判活，新生代复制、老年代标记整理，G1 分 Region 可预测停顿，ZGC 亚毫秒。</li>
+<li><strong>类加载</strong>：父先子后（双亲委派），SPI&#x2F;Tomcat 按需打破。</li>
+<li><strong>JMM</strong>：volatile 管可见性不管原子性，happens-before 是同步的免死金牌。</li>
+<li><strong>调优</strong>：先看现象和日志，再动参数；泄漏靠 dump，停顿靠收集器。</li>
+</ol>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://anlen123.github.io/blog">刘华强</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://anlen123.github.io/blog/2026/08/03/JVM%E9%9D%A2%E8%AF%95%E9%A2%98%E4%B8%8E%E7%9F%A5%E8%AF%86%E7%82%B9%E8%AF%A6%E8%A7%A3/">https://anlen123.github.io/blog/2026/08/03/JVM%E9%9D%A2%E8%AF%95%E9%A2%98%E4%B8%8E%E7%9F%A5%E8%AF%86%E7%82%B9%E8%AF%A6%E8%A7%A3/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://anlen123.github.io/blog" target="_blank">刘华强的笔记</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/blog/tags/%E9%9D%A2%E8%AF%95/">面试</a><a class="post-meta__tags" href="/blog/tags/Java/">Java</a><a class="post-meta__tags" href="/blog/tags/JVM/">JVM</a><a class="post-meta__tags" href="/blog/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/">垃圾回收</a><a class="post-meta__tags" href="/blog/tags/GC/">GC</a><a class="post-meta__tags" href="/blog/tags/%E7%B1%BB%E5%8A%A0%E8%BD%BD/">类加载</a><a class="post-meta__tags" href="/blog/tags/JMM/">JMM</a><a class="post-meta__tags" href="/blog/tags/%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/">内存模型</a><a class="post-meta__tags" href="/blog/tags/%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE/">双亲委派</a><a class="post-meta__tags" href="/blog/tags/OOM/">OOM</a><a class="post-meta__tags" href="/blog/tags/%E8%B0%83%E4%BC%98/">调优</a></div><div class="post-share"><div class="social-share" data-image="/blog/blog/images/avatar.gif" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/blog/2026/08/03/Redis%E5%AE%9E%E6%88%98%E5%9C%BA%E6%99%AF%E8%AF%A6%E8%A7%A3/" title="Redis 实战场景详解：排行榜/分布式锁/共同好友等经典用法"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Redis 实战场景详解：排行榜/分布式锁/共同好友等经典用法</div></div><div class="info-2"><div class="info-item-1">Redis 实战场景详解：排行榜&#x2F;分布式锁&#x2F;共同好友等经典用法面试官常问：”你们项目里 Redis 都用来干什么？”——如果只回答”做缓存”，就浪费了 Redis 这张好牌。Redis 的每个数据结构几乎都对应一类经典业务场景：ZSet 做排行榜、Set 做共同好友、Lua 做秒杀防超卖、GEO 做附近的人、HyperLogLog 做 UV、Bitmap 做签到、Stream 做消息队列…… 本文按”场景 → 数据结构 → 命令 → 代码 → 坑“的套路，系统梳理 Redis 的经典用法，一篇讲透。  相关知识点闭环：Java 分布式缓存面试题与知识点详解（缓存一致性&#x2F;穿透击穿雪崩&#x2F;Redisson 看门狗） · Redis 缓存三大问题详解 · Redis 幂等控制与分布式锁设计 · Redis-Bitmap 工作原理详解 · Redis-Hash 扩容机制详解   目录 总览：数据结构 × 业务场景对照表 分布式缓存（场景一） 排行榜（场景二，ZSet） 分布式锁（场景三） 共同好友与社交关系（场景四，Set） 计数器与限流（Strin...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/blog/2026/07/01/Java%E5%9B%9B%E7%A7%8D%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B%E8%AF%A6%E8%A7%A3/" title="Java 四种引用类型详解"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-01</div><div class="info-item-2">Java 四种引用类型详解</div></div><div class="info-2"><div class="info-item-1">Java 提供了四种引用类型来控制对象与 GC 之间的关系，核心问题是：一个对象被引用着，GC 能不能回收它？什么时候回收？    一、四种引用对比   引用类型 GC 回收时机 用途    强引用 绝不回收 正常编码，99% 的场景   软引用 内存不足时回收 缓存（如图片缓存）   弱引用 下次 GC 就回收 避免内存泄漏（如 WeakHashMap）   虚引用 任何时候，仅用于跟踪 管理堆外内存（如 DirectByteBuffer）   回收强度降序：强 → 软 → 弱 → 虚  二、强引用（Strong Reference）最普通的引用，Java 默认就是强引用： 1Object obj = new Object();  // obj 是强引用  规则：只要强引用链还在，GC 永远不会回收这个对象，哪怕 OOM。 12Object obj = new Object();obj = null;  // 强引用断了 → 下次 GC 可回收   三、软引用（Soft Reference）比强引用弱一级。内存够时不回收，内存不够时 GC 会回收。 12345678910111...</div></div></div></a><a class="pagination-related" href="/blog/2026/07/30/Spring%E4%B8%89%E7%BA%A7%E7%BC%93%E5%AD%98%E4%B8%BA%E4%BB%80%E4%B9%88%E6%98%AF%E4%B8%89%E7%BA%A7/" title="Spring 三级缓存为什么必须是三级——循环依赖与 AOP 的渐进推导"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-30</div><div class="info-item-2">Spring 三级缓存为什么必须是三级——循环依赖与 AOP 的渐进推导</div></div><div class="info-2"><div class="info-item-1">Spring 三级缓存为什么必须是三级“Spring 用三级缓存解决循环依赖”——这句话人人会背，但很少有人能说清：为什么必须三级？一级、二级分别解决了什么问题、又卡在什么问题？ 本文从零开始渐进推导，把三级缓存的必要性彻底讲透。  相关知识闭环：Spring Bean 生命周期详解 · Spring AOP 与事务失效原理详解   一、结论先行   方案 解决循环依赖 并发拿不到半成品 AOP 代理一致 代价    只有一级缓存 表面解决 ✗ ✗（B 拿 raw，全局是 proxy） 无   一级 + 二级 ✓ ✓ ✗（早期引用是 raw，无增强） 半成品隔离   一级 + 二级 + 三级 ✓ ✓ ✓（按需提前代理且只代理一次） 多一层 ObjectFactory   三级缓存的本质：把”是否提前暴露、暴露成 raw 还是 proxy”的决策，延迟到”真正发生循环依赖的那一刻”，由 getEarlyBeanReference 的 BeanPostProcessor 链决定。一级管成品、二级管”已暴露的早期引用”、三级管”可暴露的工厂”。  二、前提：问题发生在哪个时间点回顾 B...</div></div></div></a><a class="pagination-related" href="/blog/2026/08/03/Java%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98%E8%AF%A6%E8%A7%A3/" title="Java 分布式缓存面试题与知识点详解"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-03</div><div class="info-item-2">Java 分布式缓存面试题与知识点详解</div></div><div class="info-2"><div class="info-item-1">Java 分布式缓存面试题与知识点详解缓存是互联网架构的”性能第一杠杆”，分布式缓存更是面试中必考的核心主题。本文从缓存分层架构讲起，系统梳理缓存穿透&#x2F;击穿&#x2F;雪崩三大问题、缓存与数据库一致性、淘汰策略、Redis 分布式锁（含 Redisson 看门狗源码流程）、大 Key&#x2F;热 Key 等全部知识点，并附上面试模拟题与参考答案。  相关知识点闭环：Redis 实战场景详解：排行榜&#x2F;分布式锁&#x2F;共同好友等经典用法 · Java 分布式事务面试题与知识点详解 · Redis 幂等控制与分布式锁设计 · Redis-Bitmap 工作原理详解 · Redis-Hash 扩容机制详解   目录 缓存分层架构：为什么需要分布式缓存 缓存选型：Redis vs Memcached Redis 高可用架构演进 缓存穿透：查”不存在”的数据 缓存击穿：热点 Key 过期瞬间 缓存雪崩：大量 Key 同时失效 缓存与数据库一致性 缓存淘汰策略 Redis 分布式锁（含 Redisson 看门狗源码流程） 大 Key 与热 Key 问题 面试模拟题与参...</div></div></div></a><a class="pagination-related" href="/blog/2026/07/30/gRPC%E4%B8%8EThrift%E5%BA%8F%E5%88%97%E5%8C%96%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/" title="gRPC 与 Thrift 序列化机制详解——一张图看懂 Protobuf 编码"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-07-30</div><div class="info-item-2">gRPC 与 Thrift 序列化机制详解——一张图看懂 Protobuf 编码</div></div><div class="info-2"><div class="info-item-1">gRPC 与 Thrift 序列化机制详解RPC 框架的面试必问题：“gRPC 用什么序列化？Thrift 呢？它们有什么异同？” 一句话先记住结论：  gRPC 默认用 Protobuf 序列化（可插拔）；Thrift 自带三种协议（Binary&#x2F;Compact&#x2F;JSON）。两者的核心编码思路一模一样：变长整数 + 字段编号直跳，所以又快又小。  本文用”打包快递”的思路，把编码原理讲到看得懂、记得住。  相关知识闭环：Kafka 核心原理详解 · Java 分布式事务详解   一、先搞懂：序列化在 RPC 里是干什么的一次远程调用，本质是”把数据变成字节流传过去，再变回来“： 1客户端：对象 →(序列化)→ 字节流 →(网络传输)→ 字节流 →(反序列化)→ 对象：服务端  序列化方案的好坏，就看三个指标：    指标 含义 类比    体积小 字节流越短，传输越快 快递越轻，运费越省   解析快 反序列化不费 CPU 拆箱越快，效率越高   兼容好 字段增删不影响老服务 箱子换包装，收货人不变   JSON 是”人 readable 但胖、慢”，而 gR...</div></div></div></a><a class="pagination-related" href="/blog/2026/08/03/Redis%E5%AE%9E%E6%88%98%E5%9C%BA%E6%99%AF%E8%AF%A6%E8%A7%A3/" title="Redis 实战场景详解：排行榜&#x2F;分布式锁&#x2F;共同好友等经典用法"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-08-03</div><div class="info-item-2">Redis 实战场景详解：排行榜&#x2F;分布式锁&#x2F;共同好友等经典用法</div></div><div class="info-2"><div class="info-item-1">Redis 实战场景详解：排行榜&#x2F;分布式锁&#x2F;共同好友等经典用法面试官常问：”你们项目里 Redis 都用来干什么？”——如果只回答”做缓存”，就浪费了 Redis 这张好牌。Redis 的每个数据结构几乎都对应一类经典业务场景：ZSet 做排行榜、Set 做共同好友、Lua 做秒杀防超卖、GEO 做附近的人、HyperLogLog 做 UV、Bitmap 做签到、Stream 做消息队列…… 本文按”场景 → 数据结构 → 命令 → 代码 → 坑“的套路，系统梳理 Redis 的经典用法，一篇讲透。  相关知识点闭环：Java 分布式缓存面试题与知识点详解（缓存一致性&#x2F;穿透击穿雪崩&#x2F;Redisson 看门狗） · Redis 缓存三大问题详解 · Redis 幂等控制与分布式锁设计 · Redis-Bitmap 工作原理详解 · Redis-Hash 扩容机制详解   目录 总览：数据结构 × 业务场景对照表 分布式缓存（场景一） 排行榜（场景二，ZSet） 分布式锁（场景三） 共同好友与社交关系（场景四，Set） 计数器与限流（Strin...</div></div></div></a><a class="pagination-related" href="/blog/2024/02/01/%E6%AD%BB%E9%94%81%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3%E6%8C%87%E5%8D%97/" title="死锁问题解决指南"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-02-01</div><div class="info-item-2">死锁问题解决指南</div></div><div class="info-2"><div class="info-item-1">一、死锁的四个必要条件（打破任一即可预防）   条件 说明    互斥 资源同一时刻只能被一个线程占用   占有并等待 线程持有资源同时等待其他资源   不可抢占 资源不能被强制剥夺   循环等待 线程间形成环形等待链    二、预防死锁（开发阶段）1. 固定加锁顺序（打破循环等待）12345678910111213// ❌ 危险：线程A锁1→锁2，线程B锁2→锁1synchronized (lockA) &#123;synchronized (lockB) &#123; ... &#125;&#125;// ✅ 安全：所有线程统一按 lockA → lockB 顺序加锁// 可用锁对象的 System.identityHashCode() 决定顺序int hashA = System.identityHashCode(lockA);int hashB = System.identityHashCode(lockB);Object first  = hashA &lt; hashB ? lockA : lockB;Object second = hashA &lt; hashB ...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/blog/blog/images/avatar.gif" onerror="this.onerror=null;this.src='/blog/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">刘华强</div><div class="author-info-description"></div><div class="site-data"><a href="/blog/archives/"><div class="headline">文章</div><div class="length-num">40</div></a><a href="/blog/tags/"><div class="headline">标签</div><div class="length-num">103</div></a><a href="/blog/categories/"><div class="headline">分类</div><div class="length-num">8</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/anlen123"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/anlen123" target="_blank" title=""><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:1761512493@qq.com" target="_blank" title=""><i class="fas fa-envelope"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#JVM-%E9%9D%A2%E8%AF%95%E9%A2%98%E4%B8%8E%E7%9F%A5%E8%AF%86%E7%82%B9%E8%AF%A6%E8%A7%A3%EF%BC%9A%E5%86%85%E5%AD%98-GC-%E7%B1%BB%E5%8A%A0%E8%BD%BD-JMM-%E8%B0%83%E4%BC%98%E5%85%A8%E8%A7%A3%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">JVM 面试题与知识点详解：内存&#x2F;GC&#x2F;类加载&#x2F;JMM&#x2F;调优全解析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9B%AE%E5%BD%95"><span class="toc-number">1.1.</span> <span class="toc-text">目录</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81JVM-%E8%BF%90%E8%A1%8C%E6%97%B6%E5%86%85%E5%AD%98%E7%BB%93%E6%9E%84"><span class="toc-number">1.2.</span> <span class="toc-text">一、JVM 运行时内存结构</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-%E5%86%85%E5%AD%98%E5%A4%A7%E5%9B%BE%EF%BC%88JDK-8-%EF%BC%89"><span class="toc-number">1.2.1.</span> <span class="toc-text">1.1 内存大图（JDK 8+）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-%E5%A0%86%E7%9A%84%E5%88%86%E4%BB%A3%E7%BB%93%E6%9E%84"><span class="toc-number">1.2.2.</span> <span class="toc-text">1.2 堆的分代结构</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E5%AF%B9%E8%B1%A1%E7%9A%84%E4%B8%80%E7%94%9F%EF%BC%9A%E4%BB%8E-Eden-%E5%88%B0%E8%80%81%E5%B9%B4%E4%BB%A3"><span class="toc-number">1.3.</span> <span class="toc-text">二、对象的一生：从 Eden 到老年代</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E6%80%8E%E4%B9%88%E5%88%A4%E5%AE%9A%E5%9E%83%E5%9C%BE%EF%BC%9A%E5%8F%AF%E8%BE%BE%E6%80%A7%E5%88%86%E6%9E%90"><span class="toc-number">1.4.</span> <span class="toc-text">三、怎么判定垃圾：可达性分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E7%94%A8%E5%BC%95%E7%94%A8%E8%AE%A1%E6%95%B0%E6%B3%95"><span class="toc-number">1.4.1.</span> <span class="toc-text">3.1 为什么不用引用计数法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-%E5%8F%AF%E8%BE%BE%E6%80%A7%E5%88%86%E6%9E%90%EF%BC%88JVM-%E5%AE%9E%E9%99%85%E4%BD%BF%E7%94%A8%EF%BC%89"><span class="toc-number">1.4.2.</span> <span class="toc-text">3.2 可达性分析（JVM 实际使用）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%9B%9B%E5%A4%A7%E7%AE%97%E6%B3%95"><span class="toc-number">1.5.</span> <span class="toc-text">四、垃圾回收四大算法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-%E6%A0%87%E8%AE%B0-%E6%B8%85%E9%99%A4%EF%BC%88Mark-Sweep%EF%BC%89"><span class="toc-number">1.5.1.</span> <span class="toc-text">4.1 标记-清除（Mark-Sweep）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-%E5%A4%8D%E5%88%B6%E7%AE%97%E6%B3%95%EF%BC%88Copying%EF%BC%89"><span class="toc-number">1.5.2.</span> <span class="toc-text">4.2 复制算法（Copying）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-3-%E6%A0%87%E8%AE%B0-%E6%95%B4%E7%90%86%EF%BC%88Mark-Compact%EF%BC%89"><span class="toc-number">1.5.3.</span> <span class="toc-text">4.3 标记-整理（Mark-Compact）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-4-%E5%88%86%E4%BB%A3%E6%94%B6%E9%9B%86%EF%BC%88%E5%AE%9E%E9%99%85%E7%AD%96%E7%95%A5%EF%BC%89"><span class="toc-number">1.5.4.</span> <span class="toc-text">4.4 分代收集（实际策略）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81Minor-GC-Major-GC-Full-GC-%E4%B8%8E-STW"><span class="toc-number">1.6.</span> <span class="toc-text">五、Minor GC &#x2F; Major GC &#x2F; Full GC 与 STW</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E5%99%A8%E5%85%A8%E6%99%AF%E4%B8%8E%E9%80%89%E5%9E%8B"><span class="toc-number">1.7.</span> <span class="toc-text">六、垃圾收集器全景与选型</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#6-1-%E6%94%B6%E9%9B%86%E5%99%A8%E5%9B%BE%E8%B0%B1"><span class="toc-number">1.7.1.</span> <span class="toc-text">6.1 收集器图谱</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-2-%E9%80%90%E4%B8%AA%E8%A6%81%E7%82%B9"><span class="toc-number">1.7.2.</span> <span class="toc-text">6.2 逐个要点</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-3-%E9%80%89%E5%9E%8B%E6%80%BB%E7%BB%93"><span class="toc-number">1.7.3.</span> <span class="toc-text">6.3 选型总结</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%83%E3%80%81JMM%EF%BC%9AJava-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E4%B8%8E%E5%B9%B6%E5%8F%91%E4%B8%89%E7%89%B9%E6%80%A7"><span class="toc-number">1.8.</span> <span class="toc-text">七、JMM：Java 内存模型与并发三特性</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#7-1-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E9%95%BF%E5%95%A5%E6%A0%B7"><span class="toc-number">1.8.1.</span> <span class="toc-text">7.1 内存模型长啥样</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-2-%E5%B9%B6%E5%8F%91%E4%B8%89%E7%89%B9%E6%80%A7%E4%B8%8E%E6%89%8B%E6%AE%B5"><span class="toc-number">1.8.2.</span> <span class="toc-text">7.2 并发三特性与手段</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-3-volatile-%E7%9A%84%E5%8E%9F%E7%90%86%EF%BC%88%E9%9D%A2%E8%AF%95%E5%BF%85%E8%80%83%EF%BC%89"><span class="toc-number">1.8.3.</span> <span class="toc-text">7.3 volatile 的原理（面试必考）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-4-happens-before-%E8%A7%84%E5%88%99%EF%BC%88%E8%83%8C-8-%E6%9D%A1%E4%B8%AD%E7%9A%84%E6%A0%B8%E5%BF%83-6-%E6%9D%A1%EF%BC%89"><span class="toc-number">1.8.4.</span> <span class="toc-text">7.4 happens-before 规则（背 8 条中的核心 6 条）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AB%E3%80%81%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6%E4%B8%8E%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE"><span class="toc-number">1.9.</span> <span class="toc-text">八、类加载机制与双亲委派</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#8-1-%E7%B1%BB%E5%8A%A0%E8%BD%BD%E7%9A%84%E4%BA%94%E4%B8%AA%E9%98%B6%E6%AE%B5"><span class="toc-number">1.9.1.</span> <span class="toc-text">8.1 类加载的五个阶段</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#8-2-%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%A8%A1%E5%9E%8B%EF%BC%88%E6%A0%B8%E5%BF%83%EF%BC%81%EF%BC%89"><span class="toc-number">1.9.2.</span> <span class="toc-text">8.2 双亲委派模型（核心！）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#8-3-%E5%A6%82%E4%BD%95%E7%A0%B4%E5%9D%8F%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%EF%BC%88JDBC-%E7%BB%8F%E5%85%B8%EF%BC%89"><span class="toc-number">1.9.3.</span> <span class="toc-text">8.3 如何破坏双亲委派（JDBC 经典）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B9%9D%E3%80%81%E5%B8%B8%E9%87%8F%E6%B1%A0%E4%B8%8E-String-%E7%9A%84%E5%A5%A5%E7%A7%98"><span class="toc-number">1.10.</span> <span class="toc-text">九、常量池与 String 的奥秘</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#9-1-%E4%B8%89%E7%B1%BB%E2%80%9D%E5%B8%B8%E9%87%8F%E6%B1%A0%E2%80%9D%E5%88%AB%E6%90%9E%E6%B7%B7"><span class="toc-number">1.10.1.</span> <span class="toc-text">9.1 三类”常量池”别搞混</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#9-2-%E7%BB%8F%E5%85%B8-String-%E9%9D%A2%E8%AF%95%E9%A2%98"><span class="toc-number">1.10.2.</span> <span class="toc-text">9.2 经典 String 面试题</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%81%E3%80%81OOM-%E4%B8%8E%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E5%85%A8%E5%9C%BA%E6%99%AF"><span class="toc-number">1.11.</span> <span class="toc-text">十、OOM 与内存泄漏全场景</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#10-1-OOM-%E4%BA%94%E5%85%84%E5%BC%9F"><span class="toc-number">1.11.1.</span> <span class="toc-text">10.1 OOM 五兄弟</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#10-2-%E7%BB%8F%E5%85%B8%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E6%A8%A1%E5%BC%8F%EF%BC%88%E5%AF%B9%E8%B1%A1%E8%AF%A5%E9%87%8A%E6%94%BE%E4%BD%86%E8%A2%AB%E5%BC%95%E7%94%A8%E9%93%BE%E5%8D%A1%E4%BD%8F%EF%BC%89"><span class="toc-number">1.11.2.</span> <span class="toc-text">10.2 经典内存泄漏模式（对象该释放但被引用链卡住）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#10-3-%E5%AE%B9%E5%99%A8%E7%8E%AF%E5%A2%83%E7%9A%84%E7%89%B9%E6%AE%8A%E5%9D%91"><span class="toc-number">1.11.3.</span> <span class="toc-text">10.3 容器环境的特殊坑</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%81%E4%B8%80%E3%80%81JVM-%E5%B8%B8%E7%94%A8%E5%8F%82%E6%95%B0%E8%AF%A6%E8%A7%A3"><span class="toc-number">1.12.</span> <span class="toc-text">十一、JVM 常用参数详解</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#11-1-%E5%A0%86%E4%B8%8E%E5%86%85%E5%AD%98"><span class="toc-number">1.12.1.</span> <span class="toc-text">11.1 堆与内存</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#11-2-GC-%E7%9B%B8%E5%85%B3"><span class="toc-number">1.12.2.</span> <span class="toc-text">11.2 GC 相关</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#11-3-%E6%97%A5%E5%BF%97%E4%B8%8E%E5%AE%B9%E5%99%A8"><span class="toc-number">1.12.3.</span> <span class="toc-text">11.3 日志与容器</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%81%E4%BA%8C%E3%80%81JVM-%E8%B0%83%E4%BC%98%E7%9A%84%E6%AD%A3%E7%A1%AE%E6%96%B9%E6%B3%95"><span class="toc-number">1.13.</span> <span class="toc-text">十二、JVM 调优的正确方法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#12-1-%E5%9B%9B%E6%AD%A5%E6%B3%95"><span class="toc-number">1.13.1.</span> <span class="toc-text">12.1 四步法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#12-2-%E7%8E%B0%E8%B1%A1-%E2%86%92-%E6%A0%B9%E5%9B%A0%E5%AF%B9%E7%85%A7%E8%A1%A8"><span class="toc-number">1.13.2.</span> <span class="toc-text">12.2 现象 → 根因对照表</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#12-3-%E7%BB%8F%E9%AA%8C%E5%8E%9F%E5%88%99"><span class="toc-number">1.13.3.</span> <span class="toc-text">12.3 经验原则</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%81%E4%B8%89%E3%80%81%E5%B8%B8%E7%94%A8%E8%AF%8A%E6%96%AD%E5%B7%A5%E5%85%B7"><span class="toc-number">1.14.</span> <span class="toc-text">十三、常用诊断工具</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%81%E5%9B%9B%E3%80%81%E5%AE%9E%E6%88%98%EF%BC%9A%E4%B8%80%E6%AC%A1-Full-GC-%E9%A2%91%E7%B9%81%E7%9A%84%E6%8E%92%E6%9F%A5%E6%A1%88%E4%BE%8B"><span class="toc-number">1.15.</span> <span class="toc-text">十四、实战：一次 Full GC 频繁的排查案例</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%81%E4%BA%94%E3%80%81%E9%9D%A2%E8%AF%95%E6%A8%A1%E6%8B%9F%E9%A2%98%E4%B8%8E%E5%8F%82%E8%80%83%E7%AD%94%E6%A1%88"><span class="toc-number">1.16.</span> <span class="toc-text">十五、面试模拟题与参考答案</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9F%BA%E7%A1%80%E7%B1%BB"><span class="toc-number">1.16.1.</span> <span class="toc-text">基础类</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%94%B6%E9%9B%86%E5%99%A8%E7%B1%BB"><span class="toc-number">1.16.2.</span> <span class="toc-text">收集器类</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#JMM-%E4%B8%8E%E5%B9%B6%E5%8F%91%E7%B1%BB"><span class="toc-number">1.16.3.</span> <span class="toc-text">JMM 与并发类</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%B1%BB%E5%8A%A0%E8%BD%BD%E7%B1%BB"><span class="toc-number">1.16.4.</span> <span class="toc-text">类加载类</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B8%B8%E9%87%8F%E6%B1%A0%E4%B8%8E-String"><span class="toc-number">1.16.5.</span> <span class="toc-text">常量池与 String</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#OOM-%E4%B8%8E%E8%B0%83%E4%BC%98%E7%B1%BB"><span class="toc-number">1.16.6.</span> <span class="toc-text">OOM 与调优类</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.17.</span> <span class="toc-text">总结</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/08/03/JVM%E9%9D%A2%E8%AF%95%E9%A2%98%E4%B8%8E%E7%9F%A5%E8%AF%86%E7%82%B9%E8%AF%A6%E8%A7%A3/" title="JVM 面试题与知识点详解：内存/GC/类加载/JMM/调优全解析">JVM 面试题与知识点详解：内存/GC/类加载/JMM/调优全解析</a><time datetime="2026-08-03T08:00:00.000Z" title="发表于 2026-08-03 16:00:00">2026-08-03</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/08/03/Redis%E5%AE%9E%E6%88%98%E5%9C%BA%E6%99%AF%E8%AF%A6%E8%A7%A3/" title="Redis 实战场景详解：排行榜/分布式锁/共同好友等经典用法">Redis 实战场景详解：排行榜/分布式锁/共同好友等经典用法</a><time datetime="2026-08-03T07:00:00.000Z" title="发表于 2026-08-03 15:00:00">2026-08-03</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/08/03/Java%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98%E8%AF%A6%E8%A7%A3/" title="Java 分布式缓存面试题与知识点详解">Java 分布式缓存面试题与知识点详解</a><time datetime="2026-08-03T06:00:00.000Z" title="发表于 2026-08-03 14:00:00">2026-08-03</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/30/MySQL%E4%B8%BA%E4%BB%80%E4%B9%88%E7%94%A8B%E5%8A%A0%E6%A0%91MongoDB%E7%94%A8B%E6%A0%91/" title="为什么 MySQL 用 B+ 树，MongoDB 用 B 树？">为什么 MySQL 用 B+ 树，MongoDB 用 B 树？</a><time datetime="2026-07-30T14:00:00.000Z" title="发表于 2026-07-30 22:00:00">2026-07-30</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/blog/2026/07/30/Redis-Bitmap%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/" title="Redis Bitmap 工作原理详解——一个 bit 省出 64 倍内存">Redis Bitmap 工作原理详解——一个 bit 省出 64 倍内存</a><time datetime="2026-07-30T12:00:00.000Z" title="发表于 2026-07-30 20:00:00">2026-07-30</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By 刘华强</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.2</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.5</a></span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/blog/js/utils.js?v=5.5.5"></script><script src="/blog/js/main.js?v=5.5.5"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/blog/js/search/local-search.js?v=5.5.5"></script></div></div></body></html>
