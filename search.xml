@@ -2268,7 +2268,7 @@
     <url>/blog/2026/08/03/Java%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98%E8%AF%A6%E8%A7%A3/</url>
     <content><![CDATA[<h1 id="Java-分布式缓存面试题与知识点详解"><a href="#Java-分布式缓存面试题与知识点详解" class="headerlink" title="Java 分布式缓存面试题与知识点详解"></a>Java 分布式缓存面试题与知识点详解</h1><p>缓存是互联网架构的”性能第一杠杆”，分布式缓存更是面试中<strong>必考</strong>的核心主题。本文从缓存分层架构讲起，系统梳理缓存穿透&#x2F;击穿&#x2F;雪崩三大问题、缓存与数据库一致性、淘汰策略、Redis 分布式锁（含 Redisson 看门狗源码流程）、大 Key&#x2F;热 Key 等全部知识点，并附上面试模拟题与参考答案。</p>
 <blockquote>
-<p>相关知识点闭环：<a href="/blog/2026/07/30/Java%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%AF%A6%E8%A7%A3/">Java 分布式事务面试题与知识点详解</a> · <a href="/blog/2026/07/01/Redis%E5%B9%82%E7%AD%89%E6%8E%A7%E5%88%B6%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E8%AE%BE%E8%AE%A1/">Redis 幂等控制与分布式锁设计</a> · <a href="/blog/2026/07/01/Redis-Bitmap%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/">Redis-Bitmap 工作原理详解</a> · <a href="/blog/2026/07/01/Redis-Hash%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/">Redis-Hash 扩容机制详解</a></p>
+<p>相关知识点闭环：<a href="/blog/2026/08/03/Redis%E5%AE%9E%E6%88%98%E5%9C%BA%E6%99%AF%E8%AF%A6%E8%A7%A3/">Redis 实战场景详解：排行榜&#x2F;分布式锁&#x2F;共同好友等经典用法</a> · <a href="/blog/2026/07/30/Java%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E8%AF%A6%E8%A7%A3/">Java 分布式事务面试题与知识点详解</a> · <a href="/blog/2026/07/01/Redis%E5%B9%82%E7%AD%89%E6%8E%A7%E5%88%B6%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E8%AE%BE%E8%AE%A1/">Redis 幂等控制与分布式锁设计</a> · <a href="/blog/2026/07/01/Redis-Bitmap%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/">Redis-Bitmap 工作原理详解</a> · <a href="/blog/2026/07/01/Redis-Hash%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/">Redis-Hash 扩容机制详解</a></p>
 </blockquote>
 <hr>
 <h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><ol>
@@ -12777,6 +12777,492 @@
         <tag>面试</tag>
         <tag>自我介绍</tag>
         <tag>美团</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Redis 实战场景详解：排行榜/分布式锁/共同好友等经典用法</title>
+    <url>/blog/2026/08/03/Redis%E5%AE%9E%E6%88%98%E5%9C%BA%E6%99%AF%E8%AF%A6%E8%A7%A3/</url>
+    <content><![CDATA[<h1 id="Redis-实战场景详解：排行榜-分布式锁-共同好友等经典用法"><a href="#Redis-实战场景详解：排行榜-分布式锁-共同好友等经典用法" class="headerlink" title="Redis 实战场景详解：排行榜&#x2F;分布式锁&#x2F;共同好友等经典用法"></a>Redis 实战场景详解：排行榜&#x2F;分布式锁&#x2F;共同好友等经典用法</h1><p>面试官常问：”你们项目里 Redis 都用来干什么？”——如果只回答”做缓存”，就浪费了 Redis 这张好牌。Redis 的每个数据结构几乎都对应一类经典业务场景：<strong>ZSet 做排行榜、Set 做共同好友、Lua 做秒杀防超卖、GEO 做附近的人、HyperLogLog 做 UV、Bitmap 做签到、Stream 做消息队列</strong>……</p>
+<p>本文按”<strong>场景 → 数据结构 → 命令 → 代码 → 坑</strong>“的套路，系统梳理 Redis 的经典用法，一篇讲透。</p>
+<blockquote>
+<p>相关知识点闭环：<a href="/blog/2026/08/03/Java%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98%E8%AF%A6%E8%A7%A3/">Java 分布式缓存面试题与知识点详解</a>（缓存一致性&#x2F;穿透击穿雪崩&#x2F;Redisson 看门狗） · <a href="/blog/2026/07/29/Redis%E7%BC%93%E5%AD%98%E4%B8%89%E5%A4%A7%E9%97%AE%E9%A2%98%E8%AF%A6%E8%A7%A3/">Redis 缓存三大问题详解</a> · <a href="/blog/2026/07/01/Redis%E5%B9%82%E7%AD%89%E6%8E%A7%E5%88%B6%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E8%AE%BE%E8%AE%A1/">Redis 幂等控制与分布式锁设计</a> · <a href="/blog/2026/07/01/Redis-Bitmap%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/">Redis-Bitmap 工作原理详解</a> · <a href="/blog/2026/07/01/Redis-Hash%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3/">Redis-Hash 扩容机制详解</a></p>
+</blockquote>
+<hr>
+<h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><ol>
+<li><a href="#%E4%B8%80%E6%80%BB%E8%A7%88%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84--%E4%B8%9A%E5%8A%A1%E5%9C%BA%E6%99%AF%E5%AF%B9%E7%85%A7%E8%A1%A8">总览：数据结构 × 业务场景对照表</a></li>
+<li><a href="#%E4%BA%8C%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98%E5%9C%BA%E6%99%AF%E4%B8%80">分布式缓存（场景一）</a></li>
+<li><a href="#%E4%B8%89%E6%8E%92%E8%A1%8C%E6%A6%9C%E5%9C%BA%E6%99%AF%E4%BA%8Czset">排行榜（场景二，ZSet）</a></li>
+<li><a href="#%E5%9B%9B%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E5%9C%BA%E6%99%AF%E4%B8%89">分布式锁（场景三）</a></li>
+<li><a href="#%E4%BA%94%E5%85%B1%E5%90%8C%E5%A5%BD%E5%8F%8B%E4%B8%8E%E7%A4%BE%E4%BA%A4%E5%85%B3%E7%B3%BB%E5%9C%BA%E6%99%AF%E5%9B%9Bset">共同好友与社交关系（场景四，Set）</a></li>
+<li><a href="#%E5%85%AD%E8%AE%A1%E6%95%B0%E5%99%A8%E4%B8%8E%E9%99%90%E6%B5%81string--zset--lua">计数器与限流（String &#x2F; ZSet &#x2F; Lua）</a></li>
+<li><a href="#%E4%B8%83%E7%A7%92%E6%9D%80%E4%B8%8E%E5%BA%93%E5%AD%98%E6%89%A3%E5%87%8Flua-%E5%8E%9F%E5%AD%90%E6%80%A7">秒杀与库存扣减（Lua 原子性）</a></li>
+<li><a href="#%E5%85%AB%E5%BB%B6%E8%BF%9F%E9%98%9F%E5%88%97zset">延迟队列（ZSet）</a></li>
+<li><a href="#%E4%B9%9D%E8%BD%BB%E9%87%8F%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97list--stream">轻量消息队列（List &#x2F; Stream）</a></li>
+<li><a href="#%E5%8D%81%E9%99%84%E8%BF%91%E7%9A%84%E4%BA%BAgeo">附近的人（GEO）</a></li>
+<li><a href="#%E5%8D%81%E4%B8%80uv-%E7%BB%9F%E8%AE%A1hyperloglog">UV 统计（HyperLogLog）</a></li>
+<li><a href="#%E5%8D%81%E4%BA%8C%E7%AD%BE%E5%88%B0%E4%B8%8E%E6%89%93%E5%8D%A1bitmap">签到与打卡（Bitmap）</a></li>
+<li><a href="#%E5%8D%81%E4%B8%89%E7%82%B9%E8%B5%9E--%E6%94%B6%E8%97%8F--%E5%85%B3%E6%B3%A8set--hash">点赞 &#x2F; 收藏 &#x2F; 关注（Set + Hash）</a></li>
+<li><a href="#%E5%8D%81%E5%9B%9Bsession-%E5%85%B1%E4%BA%ABstring">Session 共享（String）</a></li>
+<li><a href="#%E5%8D%81%E4%BA%94%E5%88%86%E5%B8%83%E5%BC%8F-id-%E7%94%9F%E6%88%90incr-%E5%8F%B7%E6%AE%B5">分布式 ID 生成（INCR 号段）</a></li>
+<li><a href="#%E5%8D%81%E5%85%AD%E5%B8%83%E9%9A%86%E8%BF%87%E6%BB%A4%E5%99%A8%E9%98%B2%E7%A9%BF%E9%80%8F--%E5%88%A4%E9%87%8D">布隆过滤器（防穿透 &#x2F; 判重）</a></li>
+<li><a href="#%E5%8D%81%E4%B8%83%E6%8A%BD%E5%A5%96%E4%B8%8E%E9%9A%8F%E6%9C%BAset">抽奖与随机（Set）</a></li>
+<li><a href="#%E5%8D%81%E5%85%AB%E8%B4%AD%E7%89%A9%E8%BD%A6hash">购物车（Hash）</a></li>
+<li><a href="#%E5%8D%81%E4%B9%9D%E4%BB%80%E4%B9%88%E5%9C%BA%E6%99%AF%E4%B8%8D%E8%AF%A5%E7%94%A8-redis">什么场景不该用 Redis</a></li>
+<li><a href="#%E4%BA%8C%E5%8D%81%E9%9D%A2%E8%AF%95%E6%A8%A1%E6%8B%9F%E9%A2%98%E4%B8%8E%E5%8F%82%E8%80%83%E7%AD%94%E6%A1%88">面试模拟题与参考答案</a></li>
+<li><a href="#%E6%80%BB%E7%BB%93">总结</a></li>
+</ol>
+<hr>
+<h2 id="一、总览：数据结构-×-业务场景对照表"><a href="#一、总览：数据结构-×-业务场景对照表" class="headerlink" title="一、总览：数据结构 × 业务场景对照表"></a>一、总览：数据结构 × 业务场景对照表</h2><p>先背这张表，面试开场就能”控场”：</p>
+<table>
+<thead>
+<tr>
+<th>数据结构</th>
+<th>核心特性</th>
+<th>经典场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>String</td>
+<td>简单 KV、自增自减、过期</td>
+<td>缓存、计数器、Session、分布式锁、分布式 ID</td>
+</tr>
+<tr>
+<td>Hash</td>
+<td>对象字段、局部更新</td>
+<td>购物车、对象缓存、点赞计数</td>
+</tr>
+<tr>
+<td>List</td>
+<td>双向链表、阻塞读写</td>
+<td>轻量消息队列、最新列表、任务流</td>
+</tr>
+<tr>
+<td>Set</td>
+<td>去重、集合运算（交&#x2F;并&#x2F;差）</td>
+<td>共同好友、点赞人集合、抽奖、标签</td>
+</tr>
+<tr>
+<td>ZSet</td>
+<td>有序、分数可改、范围查询</td>
+<td>排行榜、延迟队列、限流滑动窗口、热榜</td>
+</tr>
+<tr>
+<td>Bitmap</td>
+<td>位图、省内存、位运算</td>
+<td>签到、在线状态、布隆过滤器</td>
+</tr>
+<tr>
+<td>HyperLogLog</td>
+<td>概率去重、12KB 固定内存</td>
+<td>UV 统计、去重计数</td>
+</tr>
+<tr>
+<td>GEO</td>
+<td>经纬度、距离计算</td>
+<td>附近的人、门店推荐</td>
+</tr>
+<tr>
+<td>Stream</td>
+<td>持久化消息 + 消费者组 + ACK</td>
+<td>轻量可靠消息队列</td>
+</tr>
+<tr>
+<td>Lua 脚本</td>
+<td>服务端原子执行多条命令</td>
+<td>秒杀扣库存、令牌桶限流、解锁校验</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>选择口诀</strong>：计数用 String，对象用 Hash，去重用 Set，排序用 ZSet，位操作用 Bitmap，统计去重用 HyperLogLog，距离用 GEO，可靠队列用 Stream。</p>
+</blockquote>
+<hr>
+<h2 id="二、分布式缓存（场景一）"><a href="#二、分布式缓存（场景一）" class="headerlink" title="二、分布式缓存（场景一）"></a>二、分布式缓存（场景一）</h2><p><strong>一句话</strong>：Redis 最本职的用法，读多写少的核心数据（商品、用户、配置）放缓存，DB 压力大降。</p>
+<p><strong>标准姿势（Cache Aside）</strong>：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> Product <span class="title function_">getProduct</span><span class="params">(Long id)</span> &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">key</span> <span class="operator">=</span> <span class="string">&quot;product:&quot;</span> + id;</span><br><span class="line">    <span class="type">Product</span> <span class="variable">p</span> <span class="operator">=</span> (Product) redis.get(key);</span><br><span class="line">    <span class="keyword">if</span> (p != <span class="literal">null</span>) <span class="keyword">return</span> p;                    <span class="comment">// 命中</span></span><br><span class="line">    p = productDao.selectById(id);              <span class="comment">// miss 查库</span></span><br><span class="line">    <span class="keyword">if</span> (p != <span class="literal">null</span>) &#123;</span><br><span class="line">        redis.set(key, p, <span class="number">30</span>, TimeUnit.MINUTES); <span class="comment">// 回填 + TTL</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> p;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">updateProduct</span><span class="params">(Product p)</span> &#123;</span><br><span class="line">    productDao.updateById(p);                   <span class="comment">// 先更库</span></span><br><span class="line">    redis.delete(<span class="string">&quot;product:&quot;</span> + p.getId());       <span class="comment">// 再删缓存</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>要点</strong>：缓存穿透&#x2F;击穿&#x2F;雪崩、缓存与 DB 一致性的完整方案（空值缓存、布隆过滤器、互斥锁、逻辑过期、延迟双删、Canal 订阅 binlog）见 <a href="/blog/2026/08/03/Java%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98%E8%AF%A6%E8%A7%A3/">Java 分布式缓存面试题与知识点详解</a>，此处不再重复。</p>
+<hr>
+<h2 id="三、排行榜（场景二，ZSet）"><a href="#三、排行榜（场景二，ZSet）" class="headerlink" title="三、排行榜（场景二，ZSet）"></a>三、排行榜（场景二，ZSet）</h2><h3 id="3-1-为什么用-ZSet"><a href="#3-1-为什么用-ZSet" class="headerlink" title="3.1 为什么用 ZSet"></a>3.1 为什么用 ZSet</h3><p>ZSet 的每个成员带一个 <strong>score（分数）</strong>，Redis 内部用 <strong>跳表</strong> 维护有序性，天然支持：</p>
+<ul>
+<li>实时插入&#x2F;更新分数（O(logN)）</li>
+<li>按分数范围取 TopN、分页</li>
+<li>查某人的名次</li>
+</ul>
+<h3 id="3-2-核心命令"><a href="#3-2-核心命令" class="headerlink" title="3.2 核心命令"></a>3.2 核心命令</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 加分（点赞/积分变动，不存在则创建）</span></span><br><span class="line">ZINCRBY rank:hot 5 <span class="string">&quot;article:1001&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置/覆盖分数</span></span><br><span class="line">ZADD rank:hot 100 <span class="string">&quot;article:1001&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 取 Top10（从高到低，WITHSCORES 带分数）</span></span><br><span class="line">ZREVRANGE rank:hot 0 9 WITHSCORES</span><br><span class="line"></span><br><span class="line"><span class="comment"># 分页取榜（20~29 名）</span></span><br><span class="line">ZREVRANGE rank:hot 20 29</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查某成员的名次（0 开始，第一名是 0）</span></span><br><span class="line">ZREVRANK rank:hot <span class="string">&quot;article:1001&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 查分数</span></span><br><span class="line">ZSCORE rank:hot <span class="string">&quot;article:1001&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 清理 7 天前的旧榜</span></span><br><span class="line">ZREMRANGEBYSCORE rank:hot 0 &lt;7天前时间戳&gt;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-3-代码示例（积分榜）"><a href="#3-3-代码示例（积分榜）" class="headerlink" title="3.3 代码示例（积分榜）"></a>3.3 代码示例（积分榜）</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 用户完成一单，积分 +10，实时上榜</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">addScore</span><span class="params">(Long userId, <span class="type">int</span> score)</span> &#123;</span><br><span class="line">    redis.zIncrementScore(<span class="string">&quot;rank:user&quot;</span>, userId.toString(), score);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Top100</span></span><br><span class="line"><span class="keyword">public</span> List&lt;Long&gt; <span class="title function_">top100</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> redis.zRevRange(<span class="string">&quot;rank:user&quot;</span>, <span class="number">0</span>, <span class="number">99</span>);          <span class="comment">// 只取成员</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Top100 + 分数（分页接口常用）</span></span><br><span class="line"><span class="keyword">public</span> List&lt;RankItem&gt; <span class="title function_">topWithScore</span><span class="params">(<span class="type">int</span> page, <span class="type">int</span> size)</span> &#123;</span><br><span class="line">    Set&lt;ZSetOperations.TypedTuple&lt;String&gt;&gt; tuples =</span><br><span class="line">        redis.zRevRangeWithScores(<span class="string">&quot;rank:user&quot;</span>, page * size, page * size + size - <span class="number">1</span>);</span><br><span class="line">    <span class="keyword">return</span> tuples.stream()</span><br><span class="line">        .map(t -&gt; <span class="keyword">new</span> <span class="title class_">RankItem</span>(Long.valueOf(t.getValue()), t.getScore().longValue()))</span><br><span class="line">        .toList();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 我的名次（名次要 +1 展示，因为从 0 开始）</span></span><br><span class="line"><span class="keyword">public</span> Long <span class="title function_">myRank</span><span class="params">(Long userId)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> redis.zRevRank(<span class="string">&quot;rank:user&quot;</span>, userId.toString()); <span class="comment">// null = 未上榜</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-4-经典坑与进阶（面试重点）"><a href="#3-4-经典坑与进阶（面试重点）" class="headerlink" title="3.4 经典坑与进阶（面试重点）"></a>3.4 经典坑与进阶（面试重点）</h3><p><strong>坑 1：同分怎么排？</strong> score 相同的成员按字典序排，不稳定。要”先到先得”或”分数相同按时间”，把<strong>时间编码进分数</strong>：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 分数 = 业务分 * 1_000_000 + (999_999 - 当前时间戳 % 1_000_000)</span></span><br><span class="line"><span class="comment">// → 同业务分时，先到达的（时间戳小）分数更大，排前面</span></span><br><span class="line"><span class="type">long</span> <span class="variable">score</span> <span class="operator">=</span> businessScore * <span class="number">1_000_000L</span> + (<span class="number">999_999L</span> - System.currentTimeMillis() % <span class="number">1_000_000L</span>);</span><br></pre></td></tr></table></figure>
+
+<p><strong>坑 2：全量榜内存扛不住？</strong> 只保留 TopN + 淘汰尾部：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 每次加分后，若超过 1 万，砍掉最后 100 个（只留头部）</span></span><br><span class="line">ZREMRANGEBYRANK rank:hot 0 -10001</span><br></pre></td></tr></table></figure>
+
+<p><strong>坑 3：榜单是聚合统计（如微博热搜），实时算太重？</strong> 方案：<strong>离线算 + Redis 存结果</strong>——定时任务（每 5 分钟）计算热度写入 <code>rank:hot</code>（<code>ZADD</code> 覆盖），查询端只读 Redis；配合<strong>双层榜</strong>（实时榜 ZINCRBY + 聚合榜定时覆盖，展示时按权重合并）。</p>
+<p><strong>坑 4：分数回退（取消点赞）</strong> 用 <code>ZINCRBY score -1</code>，注意别减成负数（业务上可允许或查 DB 兜底）。</p>
+<p><strong>应用扩展</strong>：直播间人气榜、销量榜、金币榜、考试排名、外卖骑手榜——凡是”数值 + 排序 + 实时变动”的需求都是 ZSet。</p>
+<hr>
+<h2 id="四、分布式锁（场景三）"><a href="#四、分布式锁（场景三）" class="headerlink" title="四、分布式锁（场景三）"></a>四、分布式锁（场景三）</h2><p><strong>一句话</strong>：多实例并发修改共享资源（库存、余额、任务）时，用 Redis 锁做互斥。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 最小可用版本：SET NX EX 原子加锁 + Lua 原子解锁</span></span><br><span class="line"><span class="type">String</span> <span class="variable">uuid</span> <span class="operator">=</span> UUID.randomUUID().toString();</span><br><span class="line"><span class="type">Boolean</span> <span class="variable">ok</span> <span class="operator">=</span> redis.setIfAbsent(<span class="string">&quot;lock:order:&quot;</span> + orderId, uuid, <span class="number">30</span>, TimeUnit.SECONDS);</span><br><span class="line"><span class="keyword">if</span> (Boolean.TRUE.equals(ok)) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        doBiz();                 <span class="comment">// 业务</span></span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="comment">// Lua: 比对 value 一致才删除，防止误删别人的锁</span></span><br><span class="line">        redis.execute(<span class="string">&quot;if redis.call(&#x27;get&#x27;,KEYS[1])==ARGV[1] then return redis.call(&#x27;del&#x27;,KEYS[1]) else return 0 end&quot;</span>,</span><br><span class="line">                      <span class="string">&quot;lock:order:&quot;</span> + orderId, uuid);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>进阶</strong>：可重入、自动续期（看门狗）、主从切换锁丢失、RedLock 争议，详见 <a href="/blog/2026/08/03/Java%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98%E8%AF%A6%E8%A7%A3/">Java 分布式缓存面试题与知识点详解 §九</a> 和 <a href="/blog/2026/07/01/Redis%E5%B9%82%E7%AD%89%E6%8E%A7%E5%88%B6%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E8%AE%BE%E8%AE%A1/">Redis 幂等控制与分布式锁设计</a>。</p>
+<blockquote>
+<p><strong>面试提醒</strong>：分布式锁不是万能的。能不用锁就不用（用乐观锁&#x2F;幂等设计替代）；锁的<strong>最终安全边界在资源侧</strong>（数据库行锁、版本号校验）。</p>
+</blockquote>
+<hr>
+<h2 id="五、共同好友与社交关系（场景四，Set）"><a href="#五、共同好友与社交关系（场景四，Set）" class="headerlink" title="五、共同好友与社交关系（场景四，Set）"></a>五、共同好友与社交关系（场景四，Set）</h2><h3 id="5-1-数据建模"><a href="#5-1-数据建模" class="headerlink" title="5.1 数据建模"></a>5.1 数据建模</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 双向都存：我关注的人 / 我的粉丝</span></span><br><span class="line">SADD following:user:1001 <span class="string">&quot;user:2001&quot;</span> <span class="string">&quot;user:2002&quot;</span> <span class="string">&quot;user:2003&quot;</span></span><br><span class="line">SADD follower:user:2001 <span class="string">&quot;user:1001&quot;</span>          <span class="comment"># user2001 的粉丝里有 1001</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-核心命令（集合运算三件套）"><a href="#5-2-核心命令（集合运算三件套）" class="headerlink" title="5.2 核心命令（集合运算三件套）"></a>5.2 核心命令（集合运算三件套）</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># ① 共同好友：交集</span></span><br><span class="line">SINTER following:user:1001 following:user:1002</span><br><span class="line"></span><br><span class="line"><span class="comment"># ② 可能认识的人：好友的好友 - 我已关注的（差集）</span></span><br><span class="line"><span class="comment">#   先取好友的好友并集，再排除自己已关注的</span></span><br><span class="line">SUNIONSTORE tmp:friends following:user:2001 following:user:2002 ...</span><br><span class="line">SDIFF tmp:friends following:user:1001</span><br><span class="line"></span><br><span class="line"><span class="comment"># ③ 双向关注（互粉）：我的关注 ∩ 我的粉丝</span></span><br><span class="line">SINTER following:user:1001 follower:user:1001</span><br><span class="line"></span><br><span class="line"><span class="comment"># ④ 是否已关注（O(1) 判断）</span></span><br><span class="line">SISMEMBER following:user:1001 <span class="string">&quot;user:2002&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># ⑤ 粉丝数 / 关注数</span></span><br><span class="line">SCARD follower:user:1001</span><br><span class="line">SCARD following:user:1001</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-3-代码示例"><a href="#5-3-代码示例" class="headerlink" title="5.3 代码示例"></a>5.3 代码示例</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 关注</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">follow</span><span class="params">(Long userId, Long targetId)</span> &#123;</span><br><span class="line">    redis.sAdd(<span class="string">&quot;following:&quot;</span> + userId, targetId.toString());   <span class="comment">// 我关注了他</span></span><br><span class="line">    redis.sAdd(<span class="string">&quot;follower:&quot;</span> + targetId, userId.toString());    <span class="comment">// 他多了个粉丝</span></span><br><span class="line">    <span class="comment">// 注意：这两步非原子，可用 Lua 脚本包一层；或允许极端情况下短暂不一致</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 共同好友</span></span><br><span class="line"><span class="keyword">public</span> Set&lt;String&gt; <span class="title function_">commonFriends</span><span class="params">(Long a, Long b)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> redis.sInter(<span class="string">&quot;following:&quot;</span> + a, <span class="string">&quot;following:&quot;</span> + b);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 可能认识的人（topN：好友的好友中，交集次数最多的）</span></span><br><span class="line"><span class="keyword">public</span> List&lt;Long&gt; <span class="title function_">recommendFriends</span><span class="params">(Long userId, <span class="type">int</span> n)</span> &#123;</span><br><span class="line">    <span class="comment">// 1. 收集我好友的好友（好友的关注列表并集），排除自己和已关注</span></span><br><span class="line">    <span class="comment">// 2. 用 ZINCRBY 统计出现次数（出现越多越可能认识）</span></span><br><span class="line">    <span class="comment">// 3. ZREVRANGE 取前 n 个</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-4-注意点"><a href="#5-4-注意点" class="headerlink" title="5.4 注意点"></a>5.4 注意点</h3><ul>
+<li><strong>大 V 场景</strong>：千万级粉丝的 Set 是大 Key，读没问题，但 <code>SINTER</code>&#x2F;<code>SUNION</code> 计算量大 → 结果<strong>缓存</strong>（如缓存 5 分钟），或用<strong>离线批处理</strong>算好写入榜单。</li>
+<li><strong>写路径的一致性</strong>：关注&#x2F;取关要”双向同时写”，用 <strong>Lua 脚本原子执行</strong>，避免只写了一半。</li>
+<li>用 Redis <strong>集群</strong>时，两个 Key 的集合运算要求<strong>同槽</strong>（用 hash tag：<code>{user:1001}:following</code>）或使用客户端侧合并。</li>
+</ul>
+<p><strong>应用扩展</strong>：微信&#x2F;微博关系链、商品对比（同时收藏了 A 和 B 的人）、标签圈人（打了”篮球”和”90后”标签的用户交集）、权限交集。</p>
+<hr>
+<h2 id="六、计数器与限流（String-ZSet-Lua）"><a href="#六、计数器与限流（String-ZSet-Lua）" class="headerlink" title="六、计数器与限流（String &#x2F; ZSet &#x2F; Lua）"></a>六、计数器与限流（String &#x2F; ZSet &#x2F; Lua）</h2><h3 id="6-1-计数器（String-INCR）"><a href="#6-1-计数器（String-INCR）" class="headerlink" title="6.1 计数器（String INCR）"></a>6.1 计数器（String INCR）</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">redis.increment(<span class="string">&quot;views:article:1001&quot;</span>);            <span class="comment">// 浏览量 +1（O(1)）</span></span><br><span class="line">redis.incrementBy(<span class="string">&quot;stock:sku:1&quot;</span>, -<span class="number">1</span>);             <span class="comment">// 扣库存</span></span><br><span class="line"><span class="comment">// 计数防抖：先 INCR 再判断是否超过阈值（配合过期时间）</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>关键坑</strong>：计数器是<strong>最终一致</strong>的，要定期<strong>异步落库</strong>（定时任务批量同步&#x2F;订阅 binlog），防止 Redis 数据丢失导致计数错乱。</p>
+<h3 id="6-2-接口限流：三种方案对比"><a href="#6-2-接口限流：三种方案对比" class="headerlink" title="6.2 接口限流：三种方案对比"></a>6.2 接口限流：三种方案对比</h3><p><strong>① 固定窗口（最简单）</strong></p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 1 分钟最多 10 次</span></span><br><span class="line"><span class="type">String</span> <span class="variable">key</span> <span class="operator">=</span> <span class="string">&quot;limit:user:&quot;</span> + userId;</span><br><span class="line"><span class="type">Long</span> <span class="variable">count</span> <span class="operator">=</span> redis.increment(key);</span><br><span class="line"><span class="keyword">if</span> (count == <span class="number">1</span>) redis.expire(key, <span class="number">60</span>);           <span class="comment">// 首次设置过期</span></span><br><span class="line"><span class="keyword">if</span> (count &gt; <span class="number">10</span>) <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RateLimitException</span>();</span><br></pre></td></tr></table></figure>
+
+<p>坑：窗口临界点突刺（59s 和 61s 各放 10 次 &#x3D; 2 秒内 20 次）。</p>
+<p><strong>② 滑动窗口（ZSet，精确）</strong></p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// key = 用户维度, score = 毫秒时间戳, member = 时间戳（或 uuid）</span></span><br><span class="line"><span class="type">String</span> <span class="variable">key</span> <span class="operator">=</span> <span class="string">&quot;sliding:user:&quot;</span> + userId;</span><br><span class="line"><span class="type">long</span> <span class="variable">now</span> <span class="operator">=</span> System.currentTimeMillis();</span><br><span class="line">redis.zRemRangeByScore(key, <span class="number">0</span>, now - <span class="number">60_000</span>);    <span class="comment">// 清掉窗口外的记录</span></span><br><span class="line"><span class="type">Long</span> <span class="variable">count</span> <span class="operator">=</span> redis.zCard(key);</span><br><span class="line"><span class="keyword">if</span> (count &gt;= <span class="number">10</span>) <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">RateLimitException</span>();</span><br><span class="line">redis.zAdd(key, now, String.valueOf(now));       <span class="comment">// 记一次</span></span><br><span class="line">redis.expire(key, <span class="number">60</span>);                            <span class="comment">// 兜底清理</span></span><br></pre></td></tr></table></figure>
+
+<p>优点：精确；缺点：每个请求一条 ZSet 记录，<strong>内存占用高</strong>。</p>
+<p><strong>③ 令牌桶（Lua，平滑）</strong></p>
+<figure class="highlight lua"><table><tr><td class="code"><pre><span class="line"><span class="comment">-- KEYS[1]=bucket:user:1001  ARGV[1]=rate(每秒补充) ARGV[2]=capacity ARGV[3]=now</span></span><br><span class="line"><span class="keyword">local</span> token = <span class="built_in">tonumber</span>(redis.call(<span class="string">&#x27;hget&#x27;</span>, KEYS[<span class="number">1</span>], <span class="string">&#x27;token&#x27;</span>) <span class="keyword">or</span> ARGV[<span class="number">2</span>])</span><br><span class="line"><span class="keyword">local</span> last = <span class="built_in">tonumber</span>(redis.call(<span class="string">&#x27;hget&#x27;</span>, KEYS[<span class="number">1</span>], <span class="string">&#x27;last&#x27;</span>) <span class="keyword">or</span> ARGV[<span class="number">3</span>])</span><br><span class="line"><span class="keyword">local</span> delta = (ARGV[<span class="number">3</span>] - last) / <span class="number">1000</span></span><br><span class="line">token = <span class="built_in">math</span>.<span class="built_in">min</span>(ARGV[<span class="number">2</span>], token + delta * ARGV[<span class="number">1</span>])   <span class="comment">-- 按时间补充</span></span><br><span class="line"><span class="keyword">if</span> token &lt; <span class="number">1</span> <span class="keyword">then</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>                                          <span class="comment">-- 拒绝</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line">redis.call(<span class="string">&#x27;hset&#x27;</span>, KEYS[<span class="number">1</span>], <span class="string">&#x27;token&#x27;</span>, token - <span class="number">1</span>, <span class="string">&#x27;last&#x27;</span>, ARGV[<span class="number">3</span>])</span><br><span class="line"><span class="keyword">return</span> <span class="number">1</span>                                              <span class="comment">-- 放行</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 调用：EVAL 上面脚本，参数 bucket:user:1001, 5, 10, now</span></span><br><span class="line"><span class="comment">// 效果：允许突发 10 个，之后稳定 5 个/秒 —— 秒杀/网关限流常用</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>生产上也可以直接用 Redis 官方模块 <strong>redis-cell</strong>（<code>CL.THROTTLE</code> 一行命令）或网关层（Sentinel 等）限流，Redis 方案适合”应用内精确限流”。</p>
+</blockquote>
+<hr>
+<h2 id="七、秒杀与库存扣减（Lua-原子性）"><a href="#七、秒杀与库存扣减（Lua-原子性）" class="headerlink" title="七、秒杀与库存扣减（Lua 原子性）"></a>七、秒杀与库存扣减（Lua 原子性）</h2><h3 id="7-1-问题"><a href="#7-1-问题" class="headerlink" title="7.1 问题"></a>7.1 问题</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 非原子写法：判断 + 扣减两步，并发下必超卖</span></span><br><span class="line"><span class="keyword">if</span> (redis.get(<span class="string">&quot;stock:sku:1&quot;</span>) &gt; <span class="number">0</span>) &#123;   <span class="comment">// 多个线程同时判断通过</span></span><br><span class="line">    redis.decrement(<span class="string">&quot;stock:sku:1&quot;</span>);   <span class="comment">// 一起扣，变负数</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="7-2-Lua-原子方案（推荐）"><a href="#7-2-Lua-原子方案（推荐）" class="headerlink" title="7.2 Lua 原子方案（推荐）"></a>7.2 Lua 原子方案（推荐）</h3><figure class="highlight lua"><table><tr><td class="code"><pre><span class="line"><span class="comment">-- KEYS[1]=stock:sku:1  KEYS[2]=buyer:sku:1  ARGV[1]=userId</span></span><br><span class="line"><span class="comment">-- 1) 一人一单校验 + 2) 库存校验 + 3) 扣减 + 4) 记录购买人 —— 全部原子</span></span><br><span class="line"><span class="keyword">if</span> redis.call(<span class="string">&#x27;sismember&#x27;</span>, KEYS[<span class="number">2</span>], ARGV[<span class="number">1</span>]) == <span class="number">1</span> <span class="keyword">then</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">2</span>        <span class="comment">-- 已买过</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"><span class="keyword">local</span> stock = <span class="built_in">tonumber</span>(redis.call(<span class="string">&#x27;get&#x27;</span>, KEYS[<span class="number">1</span>]) <span class="keyword">or</span> <span class="string">&#x27;0&#x27;</span>)</span><br><span class="line"><span class="keyword">if</span> stock &lt;= <span class="number">0</span> <span class="keyword">then</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>        <span class="comment">-- 没库存</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line">redis.call(<span class="string">&#x27;decr&#x27;</span>, KEYS[<span class="number">1</span>])</span><br><span class="line">redis.call(<span class="string">&#x27;sadd&#x27;</span>, KEYS[<span class="number">2</span>], ARGV[<span class="number">1</span>])</span><br><span class="line"><span class="keyword">return</span> <span class="number">1</span>            <span class="comment">-- 抢购成功</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="type">Long</span> <span class="variable">code</span> <span class="operator">=</span> redis.execute(script, Arrays.asList(<span class="string">&quot;stock:sku:1&quot;</span>, <span class="string">&quot;buyer:sku:1&quot;</span>), userId);</span><br><span class="line"><span class="keyword">if</span> (code == <span class="number">1</span>) &#123; mqSender.send(<span class="string">&quot;seckill_order&quot;</span>, orderInfo); &#125;  <span class="comment">// 异步落库</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>关键设计</strong>：</p>
+<ul>
+<li>库存预热：活动前把库存 <code>SET stock:sku:1 100</code>。</li>
+<li><strong>Redis 只挡流量（预扣），真正的订单写 MySQL 走 MQ 异步落库</strong>——落库失败（如地址非法）要<strong>回补库存</strong>（Lua 里 INCR 或对账任务）。</li>
+<li>超卖的最后防线：<strong>MySQL 乐观锁</strong>（<code>UPDATE stock SET count = count-1 WHERE id=? AND count&gt;0</code>）。</li>
+<li>为什么用 Lua：多条命令<strong>在 Redis 单线程中原子执行</strong>，天然无并发问题，比分布式锁性能高一个量级。</li>
+</ul>
+<hr>
+<h2 id="八、延迟队列（ZSet）"><a href="#八、延迟队列（ZSet）" class="headerlink" title="八、延迟队列（ZSet）"></a>八、延迟队列（ZSet）</h2><h3 id="8-1-原理"><a href="#8-1-原理" class="headerlink" title="8.1 原理"></a>8.1 原理</h3><p>score &#x3D; 要执行的时间戳，消费者循环取”已到期”的任务：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">生产者: ZADD delay:order 1740000000000 &quot;order:1001&quot;   # 30分钟后执行</span><br><span class="line">消费者: 每 1s 轮询：</span><br><span class="line">        ZRANGEBYSCORE delay:order 0 now LIMIT 0 1     # 取已到期的一条</span><br><span class="line">        → ZREM 删除（原子取出，防重复消费）</span><br><span class="line">        → 执行任务（关闭超时订单）</span><br></pre></td></tr></table></figure>
+
+<h3 id="8-2-代码示例"><a href="#8-2-代码示例" class="headerlink" title="8.2 代码示例"></a>8.2 代码示例</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 生产者：订单创建 30 分钟未支付则关闭</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">scheduleClose</span><span class="params">(Long orderId)</span> &#123;</span><br><span class="line">    <span class="type">long</span> <span class="variable">executeAt</span> <span class="operator">=</span> System.currentTimeMillis() + <span class="number">30</span> * <span class="number">60</span> * <span class="number">1000</span>;</span><br><span class="line">    redis.zAdd(<span class="string">&quot;delay:closeOrder&quot;</span>, executeAt, <span class="string">&quot;order:&quot;</span> + orderId);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 消费者：轮询</span></span><br><span class="line"><span class="meta">@Scheduled(fixedDelay = 1000)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">poll</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">long</span> <span class="variable">now</span> <span class="operator">=</span> System.currentTimeMillis();</span><br><span class="line">    Set&lt;String&gt; tasks = redis.zRangeByScore(<span class="string">&quot;delay:closeOrder&quot;</span>, <span class="number">0</span>, now, <span class="number">0</span>, <span class="number">100</span>);</span><br><span class="line">    <span class="keyword">for</span> (String task : tasks) &#123;</span><br><span class="line">        <span class="comment">// 原子性：ZREM 成功才处理（多消费者竞争时只有一个能删掉）</span></span><br><span class="line">        <span class="keyword">if</span> (redis.zRemove(<span class="string">&quot;delay:closeOrder&quot;</span>, task) == <span class="number">1</span>) &#123;</span><br><span class="line">            orderService.closeTimeoutOrder(Long.valueOf(task.substring(<span class="number">6</span>)));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="8-3-优缺点与选型"><a href="#8-3-优缺点与选型" class="headerlink" title="8.3 优缺点与选型"></a>8.3 优缺点与选型</h3><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ZSet 延迟队列</td>
+<td>实现简单、无额外中间件</td>
+<td>单机消费、无 ACK、Redis 重启丢任务</td>
+</tr>
+<tr>
+<td>RocketMQ 延迟消息</td>
+<td>可靠、有 ACK、精度高（18 个固定等级）</td>
+<td>引入 MQ</td>
+</tr>
+<tr>
+<td>RabbitMQ 延迟插件</td>
+<td>精度灵活</td>
+<td>引入 MQ</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>适用：订单超时关闭、优惠券到期提醒、重试任务、定时拉取。要求”<strong>一定不丢 + 集群消费</strong>“时选 MQ。</p>
+</blockquote>
+<hr>
+<h2 id="九、轻量消息队列（List-Stream）"><a href="#九、轻量消息队列（List-Stream）" class="headerlink" title="九、轻量消息队列（List &#x2F; Stream）"></a>九、轻量消息队列（List &#x2F; Stream）</h2><h3 id="9-1-List-简单队列"><a href="#9-1-List-简单队列" class="headerlink" title="9.1 List 简单队列"></a>9.1 List 简单队列</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">生产者: LPUSH task:queue <span class="string">&quot;job-1&quot;</span></span><br><span class="line">消费者: BRPOP task:queue 0        <span class="comment"># 阻塞弹出，0 = 永不超时</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>优点：极简单；缺点：<strong>无确认机制</strong>（BRPOP 取出即删，消费者挂了消息就丢）、无消费者组。</li>
+</ul>
+<h3 id="9-2-Stream（Redis-5-0-，正经的可靠队列）"><a href="#9-2-Stream（Redis-5-0-，正经的可靠队列）" class="headerlink" title="9.2 Stream（Redis 5.0+，正经的可靠队列）"></a>9.2 Stream（Redis 5.0+，正经的可靠队列）</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 生产</span></span><br><span class="line">XADD order:events * <span class="built_in">type</span> create orderId 1001</span><br><span class="line"></span><br><span class="line"><span class="comment"># 消费组（多个消费者分摊消息）</span></span><br><span class="line">XGROUP CREATE order:events group1 0</span><br><span class="line">XREADGROUP GROUP group1 consumer1 COUNT 1 STREAMS order:events &gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 处理成功后确认（ACK）—— 没 ACK 的消息在 PENDING 列表里可重新投递</span></span><br><span class="line">XACK order:events group1 1650000000000-0</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看未确认消息（消费了没 ACK，用于异常恢复）</span></span><br><span class="line">XPENDING order:events group1</span><br><span class="line"><span class="comment"># 转移给其他消费者重新处理</span></span><br><span class="line">XCLAIM order:events group1 consumer2 60000 1650000000000-0</span><br></pre></td></tr></table></figure>
+
+<p><strong>Stream 与 List 的对比（面试点）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>List</th>
+<th>Stream</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>消费者组</td>
+<td>无</td>
+<td>有（XREADGROUP）</td>
+</tr>
+<tr>
+<td>消息确认</td>
+<td>无（取出即丢）</td>
+<td>XACK 确认，PENDING 可追查</td>
+</tr>
+<tr>
+<td>重复消费</td>
+<td>天然不会（取出即删）</td>
+<td>可能重复（需幂等）</td>
+</tr>
+<tr>
+<td>消息积压</td>
+<td>一直堆在内存</td>
+<td>可设 MAXLEN 截断</td>
+</tr>
+<tr>
+<td>适合</td>
+<td>简单任务流</td>
+<td>需要可靠消费的轻量场景</td>
+</tr>
+</tbody></table>
+<h3 id="9-3-什么时候用-Redis-做-MQ？"><a href="#9-3-什么时候用-Redis-做-MQ？" class="headerlink" title="9.3 什么时候用 Redis 做 MQ？"></a>9.3 什么时候用 Redis 做 MQ？</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">用 Redis: 数据量不大、允许少量丢失、不想引入新中间件</span><br><span class="line">         （异步通知、日志采集、简单任务）</span><br><span class="line">用 Kafka/RocketMQ: 要求不丢消息、高吞吐、消息回溯、严格顺序</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>一句话：<strong>Redis 的 Stream 是”轻量可靠”的折中方案，但替代不了专业 MQ</strong>——消息堆积、持久化、回溯、海量分区是专业 MQ 的护城河。</p>
+</blockquote>
+<hr>
+<h2 id="十、附近的人（GEO）"><a href="#十、附近的人（GEO）" class="headerlink" title="十、附近的人（GEO）"></a>十、附近的人（GEO）</h2><h3 id="10-1-命令"><a href="#10-1-命令" class="headerlink" title="10.1 命令"></a>10.1 命令</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 添加商家坐标（经度 纬度 成员）</span></span><br><span class="line">GEOADD shop:poi 116.397 39.909 <span class="string">&quot;天安门&quot;</span> 116.403 39.915 <span class="string">&quot;王府井&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 查找 5km 内的商家（按距离升序）</span></span><br><span class="line">GEOSEARCH shop:poi FROMLONLAT 116.40 39.90 BYRADIUS 5 km ASC</span><br><span class="line"></span><br><span class="line"><span class="comment"># 两点距离（米）</span></span><br><span class="line">GEODIST shop:poi <span class="string">&quot;天安门&quot;</span> <span class="string">&quot;王府井&quot;</span> m</span><br><span class="line"></span><br><span class="line"><span class="comment"># 删除（GEO 底层是 ZSet，可用 ZREM）</span></span><br><span class="line">ZREM shop:poi <span class="string">&quot;天安门&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="10-2-代码示例"><a href="#10-2-代码示例" class="headerlink" title="10.2 代码示例"></a>10.2 代码示例</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 上报位置（骑手/用户）</span></span><br><span class="line">redis.geoAdd(<span class="string">&quot;user:pos&quot;</span>, <span class="keyword">new</span> <span class="title class_">Point</span>(lng, lat), userId.toString());</span><br><span class="line"></span><br><span class="line"><span class="comment">// 附近 3km 内的用户</span></span><br><span class="line">List&lt;GeoResult&gt; nearby = redis.geoSearch(</span><br><span class="line">    <span class="string">&quot;user:pos&quot;</span>,</span><br><span class="line">    <span class="keyword">new</span> <span class="title class_">Circle</span>(<span class="keyword">new</span> <span class="title class_">Point</span>(lng, lat), <span class="keyword">new</span> <span class="title class_">Distance</span>(<span class="number">3</span>, RedisGeoCommands.DistanceUnit.KILOMETERS)),</span><br><span class="line">    GeoRadiusCommandArgs.newGeoRadiusArgs().sortAscending().limit(<span class="number">50</span>));</span><br></pre></td></tr></table></figure>
+
+<h3 id="10-3-原理与坑"><a href="#10-3-原理与坑" class="headerlink" title="10.3 原理与坑"></a>10.3 原理与坑</h3><ul>
+<li><strong>底层是 ZSet</strong>：经纬度通过 <strong>geohash 编码</strong>成一个 52 位整数作为 score，所以 GEO 天然支持删除、排重。</li>
+<li>精度：约 0.5cm 误差，够用。</li>
+<li>高频上报场景（如骑手位置每秒上报）：<strong>先写内存再批量上报</strong>（防大 Key），或用”低频位置 + 高频查询缓存”。</li>
+<li>集群下同样注意<strong>同槽</strong>问题。</li>
+</ul>
+<p><strong>应用</strong>：外卖&#x2F;打车&#x2F;附近门店&#x2F;蓝牙打卡。</p>
+<hr>
+<h2 id="十一、UV-统计（HyperLogLog）"><a href="#十一、UV-统计（HyperLogLog）" class="headerlink" title="十一、UV 统计（HyperLogLog）"></a>十一、UV 统计（HyperLogLog）</h2><h3 id="11-1-问题"><a href="#11-1-问题" class="headerlink" title="11.1 问题"></a>11.1 问题</h3><p>统计页面 UV（独立访客）：Set 精确但内存大（100 万用户 ≈ 几十 MB）；HyperLogLog 用 <strong>12KB 固定内存</strong>统计上亿级去重数，误差约 <strong>0.81%</strong>。</p>
+<h3 id="11-2-用法"><a href="#11-2-用法" class="headerlink" title="11.2 用法"></a>11.2 用法</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">PFADD uv:article:1001 user_1 user_2 user_3</span><br><span class="line">PFADD uv:article:1001 user_4            <span class="comment"># 追加</span></span><br><span class="line">PFCOUNT uv:article:1001                 <span class="comment"># ≈ 4（有误差）</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 合并多个 Key（如分小时统计合并为全天）</span></span><br><span class="line">PFMERGE uv:article:1001:day uv:article:1001:1h uv:article:1001:2h ...</span><br></pre></td></tr></table></figure>
+
+<h3 id="11-3-适用边界（面试点）"><a href="#11-3-适用边界（面试点）" class="headerlink" title="11.3 适用边界（面试点）"></a>11.3 适用边界（面试点）</h3><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>用不用 HLL</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>页面 UV &#x2F; 直播间在线人数峰值</td>
+<td>✅</td>
+<td>允许 0.81% 误差</td>
+</tr>
+<tr>
+<td>精确到人的运营数据（奖励发放）</td>
+<td>❌</td>
+<td>误差不可接受，用 Set 或 DB count distinct</td>
+</tr>
+<tr>
+<td>数据量小于 1 万</td>
+<td>❌</td>
+<td>直接用 Set 更准更简单</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>口诀：<strong>UV 统计认准 HyperLogLog，12KB 管亿级；要精确就 Set，量小也 Set。</strong></p>
+</blockquote>
+<hr>
+<h2 id="十二、签到与打卡（Bitmap）"><a href="#十二、签到与打卡（Bitmap）" class="headerlink" title="十二、签到与打卡（Bitmap）"></a>十二、签到与打卡（Bitmap）</h2><h3 id="12-1-建模"><a href="#12-1-建模" class="headerlink" title="12.1 建模"></a>12.1 建模</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 一个用户一个月一个 Key，offset = 第几天-1</span></span><br><span class="line"><span class="comment">// SETBIT sign:202608:user1001 0 1   → 8月1日签到</span></span><br><span class="line"><span class="comment">// SETBIT sign:202608:user1001 4 1   → 8月5日签到</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 8月5日签到</span></span><br><span class="line">SETBIT sign:202608:user1001 4 1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 是否签过（8月5日）</span></span><br><span class="line">GETBIT sign:202608:user1001 4</span><br><span class="line"></span><br><span class="line"><span class="comment"># 本月签到天数</span></span><br><span class="line">BITCOUNT sign:202608:user1001</span><br><span class="line"></span><br><span class="line"><span class="comment"># 一次取出整个月的位（31 位）在客户端算连续签到</span></span><br><span class="line">BITFIELD sign:202608:user1001 GET u31 0</span><br></pre></td></tr></table></figure>
+
+<h3 id="12-2-连续签到判断（面试手写）"><a href="#12-2-连续签到判断（面试手写）" class="headerlink" title="12.2 连续签到判断（面试手写）"></a>12.2 连续签到判断（面试手写）</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 取出当月二进制串，从今天往前数连续的 1</span></span><br><span class="line"><span class="keyword">public</span> <span class="type">int</span> <span class="title function_">continuousDays</span><span class="params">(Long userId)</span> &#123;</span><br><span class="line">    <span class="type">int</span> <span class="variable">today</span> <span class="operator">=</span> LocalDate.now().getDayOfMonth();</span><br><span class="line">    List&lt;Long&gt; bits = redis.bitField(<span class="string">&quot;sign:202608:&quot;</span> + userId, BitFieldSubCommands.create()</span><br><span class="line">        .get(BitFieldSubCommands.BitFieldType.UNSIGNED, today).value(<span class="number">0</span>));</span><br><span class="line">    <span class="keyword">if</span> (bits.isEmpty()) <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    <span class="type">long</span> <span class="variable">bitset</span> <span class="operator">=</span> bits.get(<span class="number">0</span>);</span><br><span class="line">    <span class="type">int</span> <span class="variable">count</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">while</span> ((bitset &amp; <span class="number">1</span>) == <span class="number">1</span>) &#123;   <span class="comment">// 从低位（今天）往高位数</span></span><br><span class="line">        count++;</span><br><span class="line">        bitset &gt;&gt;= <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="12-3-优势"><a href="#12-3-优势" class="headerlink" title="12.3 优势"></a>12.3 优势</h3><ul>
+<li><strong>内存极省</strong>：一个用户一年 365 位 ≈ 46 字节，100 万用户一年 ≈ 46MB。</li>
+<li>位运算快：BITCOUNT 统计、BITFIELD 批量取。</li>
+<li><strong>应用扩展</strong>：在线状态（在线&#x3D;1）、用户标签（<code>tag:90后</code> 第 3 位）、布隆过滤器手写版（底层原理见 <a href="/blog/2026/07/01/Redis-Bitmap%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86%E8%AF%A6%E8%A7%A3/">Redis-Bitmap 工作原理详解</a>）。</li>
+</ul>
+<hr>
+<h2 id="十三、点赞-收藏-关注（Set-Hash）"><a href="#十三、点赞-收藏-关注（Set-Hash）" class="headerlink" title="十三、点赞 &#x2F; 收藏 &#x2F; 关注（Set + Hash）"></a>十三、点赞 &#x2F; 收藏 &#x2F; 关注（Set + Hash）</h2><h3 id="13-1-建模"><a href="#13-1-建模" class="headerlink" title="13.1 建模"></a>13.1 建模</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 点赞人集合（可判断&quot;是否点过&quot;、防重复点赞）</span></span><br><span class="line">redis.sAdd(<span class="string">&quot;like:article:1001&quot;</span>, userId);     <span class="comment">// 点赞</span></span><br><span class="line">redis.sRem(<span class="string">&quot;like:article:1001&quot;</span>, userId);     <span class="comment">// 取消</span></span><br><span class="line"><span class="type">boolean</span> <span class="variable">liked</span> <span class="operator">=</span> redis.sIsMember(<span class="string">&quot;like:article:1001&quot;</span>, userId);  <span class="comment">// 是否点过</span></span><br><span class="line"><span class="type">long</span> <span class="variable">count</span> <span class="operator">=</span> redis.sCard(<span class="string">&quot;like:article:1001&quot;</span>);                 <span class="comment">// 点赞数</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 若需要&quot;点赞列表按时间排序&quot;：换 ZSet，score = 点赞时间戳</span></span><br><span class="line">redis.zAdd(<span class="string">&quot;like:article:1001&quot;</span>, now, userId.toString());</span><br></pre></td></tr></table></figure>
+
+<h3 id="13-2-计数落库（一致性关键）"><a href="#13-2-计数落库（一致性关键）" class="headerlink" title="13.2 计数落库（一致性关键）"></a>13.2 计数落库（一致性关键）</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">点赞 → Redis SADD（毫秒级响应）</span><br><span class="line">     → 异步任务（每 N 秒/每 M 次）批量把 count 同步到 MySQL</span><br><span class="line">     → 或订阅 binlog 用 DB 为准最终修正</span><br></pre></td></tr></table></figure>
+
+<p><strong>为什么计数先放 Redis</strong>：MySQL 对热点行 UPDATE 并发能力差，Redis 扛流量、异步落库，DB 只做最终持久化。注意：<strong>点赞明细以 Redis 为主</strong>（查”谁点了赞”直接读 Redis），DB 的计数表做兜底。</p>
+<hr>
+<h2 id="十四、Session-共享（String）"><a href="#十四、Session-共享（String）" class="headerlink" title="十四、Session 共享（String）"></a>十四、Session 共享（String）</h2><h3 id="14-1-场景"><a href="#14-1-场景" class="headerlink" title="14.1 场景"></a>14.1 场景</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">单体: Session 存 Tomcat 内存，多实例部署后用户请求到 B 机器就丢了登录态</span><br><span class="line">方案: Spring Session + Redis —— Session 统一存 Redis，所有实例共享</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 引入 spring-session-data-redis 后，只需配置：</span></span><br><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">session:</span></span><br><span class="line">    <span class="attr">store-type:</span> <span class="string">redis</span></span><br><span class="line">    <span class="attr">timeout:</span> <span class="string">30m</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 用法不变，还是 HttpSession，但底层已经写到 Redis（SESSION:xxx，带过期）</span></span><br><span class="line">session.setAttribute(<span class="string">&quot;userId&quot;</span>, <span class="number">1001L</span>);</span><br></pre></td></tr></table></figure>
+
+<h3 id="14-2-对比-JWT"><a href="#14-2-对比-JWT" class="headerlink" title="14.2 对比 JWT"></a>14.2 对比 JWT</h3><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Redis Session</td>
+<td>可主动踢人、可统计在线、续期方便</td>
+<td>每次请求一次 Redis IO；Redis 挂了登录态全丢</td>
+</tr>
+<tr>
+<td>JWT</td>
+<td>无状态、无需存储</td>
+<td>无法主动注销&#x2F;踢人，密钥泄露全完</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>互联网场景常用”<strong>JWT 校验 + Redis 存可踢人的黑名单&#x2F;白名单</strong>“组合。</p>
+</blockquote>
+<hr>
+<h2 id="十五、分布式-ID-生成（INCR-号段）"><a href="#十五、分布式-ID-生成（INCR-号段）" class="headerlink" title="十五、分布式 ID 生成（INCR 号段）"></a>十五、分布式 ID 生成（INCR 号段）</h2><h3 id="15-1-直接-INCR"><a href="#15-1-直接-INCR" class="headerlink" title="15.1 直接 INCR"></a>15.1 直接 INCR</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="type">Long</span> <span class="variable">id</span> <span class="operator">=</span> redis.increment(<span class="string">&quot;id:order&quot;</span>);   <span class="comment">// 简单，但每次一次网络往返，量大了慢</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="15-2-号段模式（推荐，类似-Leaf-segment）"><a href="#15-2-号段模式（推荐，类似-Leaf-segment）" class="headerlink" title="15.2 号段模式（推荐，类似 Leaf-segment）"></a>15.2 号段模式（推荐，类似 Leaf-segment）</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 一次性取 1000 个号段，进程内分配，用完再取</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">IdGenerator</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">long</span> current;       <span class="comment">// 当前已分配到的</span></span><br><span class="line">    <span class="keyword">private</span> <span class="type">long</span> max;           <span class="comment">// 本段上限</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="type">long</span> <span class="title function_">nextId</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (current &gt;= max) &#123;</span><br><span class="line">            <span class="comment">// 取号段：INCRBY id:order 1000，返回新值 = max</span></span><br><span class="line">            <span class="built_in">this</span>.max = redis.incrementBy(<span class="string">&quot;id:order&quot;</span>, <span class="number">1000</span>);</span><br><span class="line">            <span class="built_in">this</span>.current = max - <span class="number">1000</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> ++current;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>注意</strong>：Redis 重启后 <code>INCR</code> 从持久化点继续，可能<strong>重复发号</strong> → 要求业务可容忍或搭配时间戳前缀；对 ID 可靠性要求高（订单号对外暴露）时选<strong>雪花算法</strong>（趋势递增、无中心依赖）或 DB 号段表。</p>
+<hr>
+<h2 id="十六、布隆过滤器（防穿透-判重）"><a href="#十六、布隆过滤器（防穿透-判重）" class="headerlink" title="十六、布隆过滤器（防穿透 &#x2F; 判重）"></a>十六、布隆过滤器（防穿透 &#x2F; 判重）</h2><h3 id="16-1-用法"><a href="#16-1-用法" class="headerlink" title="16.1 用法"></a>16.1 用法</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># Redis 4.0+ 官方模块 redisbloom</span></span><br><span class="line">BF.ADD bloom:username <span class="string">&quot;zhangsan&quot;</span></span><br><span class="line">BF.EXISTS bloom:username <span class="string">&quot;zhangsan&quot;</span>    <span class="comment"># 1 = 可能存在, 0 = 一定不存在</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 初始化容量和误差率</span></span><br><span class="line">BF.RESERVE bloom:username 0.001 1000000</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 应用：注册时快速判断用户名是否已被占用</span></span><br><span class="line"><span class="keyword">if</span> (bf.exists(<span class="string">&quot;bloom:username&quot;</span>, username)) &#123;</span><br><span class="line">    <span class="comment">// 可能存在 → 查 DB 确认（少量假阳性请求，无害）</span></span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="comment">// 一定不存在 → 直接提示&quot;用户名可用&quot;，不用查库</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="16-2-经典应用清单"><a href="#16-2-经典应用清单" class="headerlink" title="16.2 经典应用清单"></a>16.2 经典应用清单</h3><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>缓存穿透拦截</td>
+<td>合法 key 预加载进布隆，非法 key 直接拦截（详见缓存文章）</td>
+</tr>
+<tr>
+<td>用户名&#x2F;手机号判重</td>
+<td>判断”不存在”极快且零 DB 压力</td>
+</tr>
+<tr>
+<td>爬虫 URL 去重</td>
+<td>亿级 URL 判重，省内存</td>
+</tr>
+<tr>
+<td>已读&#x2F;推荐去重</td>
+<td>消息已读、Feed 去重</td>
+</tr>
+<tr>
+<td>注册昵称可用性</td>
+<td>见上例</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>缺点：<strong>不支持删除</strong>（误删会误伤）、有假阳性。需要删除场景用<strong>计数布隆过滤器</strong>或 Redis 的 Cuckoo Filter（redisbloom 也提供）。</p>
+</blockquote>
+<hr>
+<h2 id="十七、抽奖与随机（Set）"><a href="#十七、抽奖与随机（Set）" class="headerlink" title="十七、抽奖与随机（Set）"></a>十七、抽奖与随机（Set）</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 不重复中奖：SPOP 抽中即移出（保证一个人不会中两次）</span></span><br><span class="line"><span class="type">String</span> <span class="variable">winner</span> <span class="operator">=</span> redis.sPop(<span class="string">&quot;lucky:user&quot;</span>);   <span class="comment">// 返回并删除</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 可重复中奖/展示用：SRANDMEMBER 不删除</span></span><br><span class="line">List&lt;String&gt; winners = redis.sRandomMembers(<span class="string">&quot;lucky:user&quot;</span>, <span class="number">3</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 大转盘：权重抽奖 → 用 ZSet（score=权重区间上界）或 Lua 按权重选</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>应用</strong>：年会抽奖、积分抽奖、随机推荐（广告位）。</p>
+<hr>
+<h2 id="十八、购物车（Hash）"><a href="#十八、购物车（Hash）" class="headerlink" title="十八、购物车（Hash）"></a>十八、购物车（Hash）</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// HSET cart:user1001 sku:1 2        # 商品1 数量2</span></span><br><span class="line"><span class="comment">// HINCRBY cart:user1001 sku:1 1     # 数量+1</span></span><br><span class="line"><span class="comment">// HINCRBY cart:user1001 sku:1 -1    # 数量-1（&lt;=0 时 HDEL）</span></span><br><span class="line"><span class="comment">// HDEL cart:user1001 sku:1          # 删除商品</span></span><br><span class="line"><span class="comment">// HGETALL cart:user1001             # 全量查询</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">addToCart</span><span class="params">(Long userId, Long skuId, <span class="type">int</span> count)</span> &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">key</span> <span class="operator">=</span> <span class="string">&quot;cart:&quot;</span> + userId;</span><br><span class="line">    redis.hashIncrement(key, skuId.toString(), count);</span><br><span class="line">    <span class="comment">// 下单成功后 HDEL 清空对应商品</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>优点</strong>：字段级更新（只改数量，不用整个对象序列化）、内存紧凑；<strong>注意</strong>：过期时间别乱设（购物车一般长期保留），量大的用户做拆分。</p>
+<hr>
+<h2 id="十九、什么场景不该用-Redis"><a href="#十九、什么场景不该用-Redis" class="headerlink" title="十九、什么场景不该用 Redis"></a>十九、什么场景不该用 Redis</h2><p>面试官会反过来问：”Redis 这么强，是不是都能用？”——<strong>不是</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>为什么不能用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>强一致 + 可回滚的事务</td>
+<td>Redis 事务（MULTI&#x2F;EXEC）无回滚，持久化有丢失窗口（RDB 间隔丢 &#x2F; AOF 每秒丢 1s）</td>
+</tr>
+<tr>
+<td>资金类账务</td>
+<td>最终一致 + 可能丢数据 &#x3D; 致命；必须 MySQL 事务</td>
+</tr>
+<tr>
+<td>复杂关联查询</td>
+<td>不支持 SQL、无 Join，数据模型要预设计</td>
+</tr>
+<tr>
+<td>大数据量分析报表</td>
+<td>全内存，容量贵；离线数仓&#x2F;HBase 更合适</td>
+</tr>
+<tr>
+<td>精确计数且量大</td>
+<td>HyperLogLog 有 0.81% 误差，Set 内存贵 → 用 DB</td>
+</tr>
+<tr>
+<td>超大 value（&gt;10MB）</td>
+<td>阻塞单线程、网络&#x2F;内存压力大（大 Key 治理见缓存文章）</td>
+</tr>
+<tr>
+<td>全文搜索</td>
+<td>用 ES</td>
+</tr>
+<tr>
+<td>需要消息回溯&#x2F;海量堆积的 MQ</td>
+<td>用 Kafka&#x2F;RocketMQ</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>面试一句话：<strong>Redis 是”高性能最终一致组件”，不是”数据库”</strong>。凡是”必须强一致、必须不丢、必须复杂查询”的数据，都不要放 Redis。</p>
+</blockquote>
+<hr>
+<h2 id="二十、面试模拟题与参考答案"><a href="#二十、面试模拟题与参考答案" class="headerlink" title="二十、面试模拟题与参考答案"></a>二十、面试模拟题与参考答案</h2><p><strong>Q1：排行榜怎么实现？分数相同怎么排？</strong><br>ZSet：ZINCRBY 加分、ZREVRANGE 取榜、ZREVRANK 查名次。同分处理：把时间戳编码进分数（<code>业务分 * 100万 + 时间余数</code>），先到先得；或展示层按”分数 + 时间”二次排序。</p>
+<p><strong>Q2：共同好友怎么实现？</strong><br>双向 Set（following&#x2F;follower），SINTER 交集。注意大 V 场景集合运算重 → 结果缓存&#x2F;离线计算；集群下用 hash tag 保证同槽。</p>
+<p><strong>Q3：怎么防超卖？</strong><br>三层：Redis Lua 原子扣减（校验库存 + 扣减 + 一人一单）+ 异步落库回补 + MySQL 乐观锁（<code>WHERE count &gt; 0</code>）兜底。</p>
+<p><strong>Q4：限流方案怎么选？</strong><br>固定窗口（简单，有临界突刺）&#x2F; 滑动窗口 ZSet（精确，费内存）&#x2F; 令牌桶 Lua（平滑，可突发）。网关级用 Sentinel，应用内精确限流用 Redis。</p>
+<p><strong>Q5：Redis 能做消息队列吗？</strong><br>List 能但不可靠；Stream（5.0+）支持消费者组、ACK、PENDING 恢复，轻量场景够用；要求不丢消息、高吞吐、回溯选 Kafka&#x2F;RocketMQ。</p>
+<p><strong>Q6：UV 统计用 Set 还是 HyperLogLog？</strong><br>UV 量大用 HyperLogLog（12KB 管亿级，误差 0.81%）；要精确或数据量小用 Set。</p>
+<p><strong>Q7：签到怎么存？怎么算连续签到？</strong><br>Bitmap：一个用户一个月一个 Key，SETBIT 标记，BITFIELD 一次取出当月位串，客户端从今天位往低位数连续的 1。</p>
+<p><strong>Q8：Redis 做分布式锁注意什么？</strong><br>SET NX EX 原子加锁 + UUID 标识 + Lua 原子解锁；锁过期业务没完用 Redisson 看门狗续期；主从切换丢锁用 RedLock（有争议）或 ZooKeeper；最终靠业务幂等兜底。</p>
+<p><strong>Q9：GEO 底层是什么？</strong><br>ZSet，经纬度 geohash 编码成 52 位整数做 score，所以支持 ZREM 删除。</p>
+<p><strong>Q10：点赞数存 Redis，怎么和 DB 一致？</strong><br>Redis 扛实时读写，异步批量落库（定时&#x2F;计数阈值触发）；以 Redis 明细为准展示，DB 定期对账修正。</p>
+<p><strong>Q11：Session 存 Redis 和 JWT 怎么选？</strong><br>要踢人&#x2F;统计在线 → Redis Session；要无状态高可用 → JWT；生产常用”JWT + Redis 黑名单&#x2F;白名单”。</p>
+<p><strong>Q12：Redis 宕机了怎么办？（综合）</strong><br>多级缓存兜底（本地缓存）→ 限流降级 → 恢复后缓存预热；数据不丢靠 RDB + AOF 持久化；高可用靠哨兵&#x2F;Cluster；<strong>核心数据永远以 DB 为准</strong>。</p>
+<hr>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>Redis 的用法可以浓缩成一张心智图：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">String ── 缓存 / 计数器 / Session / 分布式锁 / 分布式ID</span><br><span class="line">Hash ──── 购物车 / 对象缓存 / 计数</span><br><span class="line">List ──── 简单队列 / 最新列表</span><br><span class="line">Set ───── 共同好友 / 点赞人 / 抽奖 / 标签圈人</span><br><span class="line">ZSet ──── 排行榜 / 延迟队列 / 滑动窗口限流 / 权重抽奖</span><br><span class="line">Bitmap ── 签到 / 在线状态 / 布隆过滤</span><br><span class="line">HyperLogLog ── UV 统计</span><br><span class="line">GEO ──── 附近的人</span><br><span class="line">Stream ── 轻量可靠消息队列</span><br><span class="line">Lua ──── 秒杀扣库存 / 令牌桶 / 原子组合操作</span><br></pre></td></tr></table></figure>
+
+<p><strong>三条总原则</strong>：</p>
+<ol>
+<li><strong>选型看结构</strong>：先想清楚业务要”排序、去重、计数还是范围查询”，再选数据结构——选对了 Redis 一半的坑就避开了。</li>
+<li><strong>Redis 是流量层，DB 是事实层</strong>：Redis 里的一切最终都要能回落到 DB（异步落库 + 对账 + TTL 兜底）。</li>
+<li><strong>原子性交给 Lua</strong>：凡是要”多步操作 + 并发安全”（扣库存、令牌桶、解锁校验），一律 Lua 脚本，别用分布式锁硬撑。</li>
+</ol>
+]]></content>
+      <categories>
+        <category>后端</category>
+      </categories>
+      <tags>
+        <tag>Java</tag>
+        <tag>面试</tag>
+        <tag>消息队列</tag>
+        <tag>Redis</tag>
+        <tag>分布式锁</tag>
+        <tag>Bitmap</tag>
+        <tag>限流</tag>
+        <tag>ZSet</tag>
+        <tag>Set</tag>
+        <tag>排行榜</tag>
+        <tag>秒杀</tag>
+        <tag>GEO</tag>
+        <tag>HyperLogLog</tag>
       </tags>
   </entry>
 </search>
